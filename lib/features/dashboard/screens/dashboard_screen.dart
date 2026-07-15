@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../company/models/company_context.dart';
 import '../../company/services/company_service.dart';
 import '../../customers/screens/customers_list_screen.dart';
+import '../../projects/screens/projects_list_screen.dart';
 import '../../projects/services/project_service.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -194,24 +195,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
               )
             else
               _CompanyContextCard(companyContext: companyContext!),
-            if (companyContext != null) ...[
-              const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => CustomersListScreen(
-                          companyContext: companyContext!,
-                        ),
+              if (companyContext != null) ...[
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CustomersListScreen(
+                                companyContext: companyContext!,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('View Customers'),
                       ),
-                    );
-                  },
-                  child: const Text('View Customers'),
+                    ),
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ProjectsListScreen(
+                                companyContext: companyContext!,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('View Projects'),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {

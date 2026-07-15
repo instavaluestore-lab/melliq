@@ -63,6 +63,43 @@ class ProjectService {
         .toList();
   }
 
+  Future<List<Project>> getProjectsForCompany({
+    required String companyId,
+  }) async {
+    final response = await _supabase
+        .from('projects')
+        .select('''
+          id,
+          company_id,
+          customer_id,
+          project_number,
+          name,
+          status,
+          priority,
+          address_line_1,
+          address_line_2,
+          city,
+          state,
+          postal_code,
+          country,
+          contract_amount,
+          estimated_cost,
+          actual_cost,
+          estimated_profit,
+          actual_profit,
+          notes
+        ''')
+        .eq('company_id', companyId)
+        .isFilter('archived_at', null)
+        .order('created_at', ascending: false);
+
+    return response
+        .map<Project>(
+          (item) => Project.fromMap(item),
+        )
+        .toList();
+  }
+
   Future<Project> getProjectById(String projectId) async {
     final response = await _supabase
         .from('projects')
