@@ -604,6 +604,35 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     child: _ProjectTitleBlock(project: project),
                   ),
                 ),
+                  if (MediaQuery.of(context).size.shortestSide < 1000)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: _ProjectSummaryCard(
+                          contractAmountController: contractAmountController,
+                          selectedStatus: selectedStatus,
+                          onStatusChanged: isSaving
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+
+                                  setState(() {
+                                    selectedStatus = value;
+                                  });
+                                },
+                          estimatedTotal: estimatedTotal,
+                          actualTotal: actualTotal,
+                          additionalActualTotal: additionalActualTotal,
+                          estimatedProfit: estimatedProfit,
+                          actualProfit: actualProfit,
+                          estimatedMarginPercent: estimatedMarginPercent,
+                          actualMarginPercent: actualMarginPercent,
+                          enabled: !isSaving,
+                          onChanged: () => setState(() {}),
+                        ),
+                      ),
+                    ),
+                  if (MediaQuery.of(context).size.shortestSide >= 1000)
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _StickySummaryHeader(
@@ -739,6 +768,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       body: RefreshIndicator(
         onRefresh: loadProjectDetail,
         child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: content,
         ),
       ),
@@ -816,10 +846,10 @@ class _StickySummaryHeader extends SliverPersistentHeaderDelegate {
   final Widget child;
 
   @override
-  double get minExtent => 420;
+  double get minExtent => 255;
 
   @override
-  double get maxExtent => 420;
+  double get maxExtent => 255;
 
   @override
   Widget build(
@@ -970,57 +1000,57 @@ class _MoneyGrid extends StatelessWidget {
           runSpacing: 10,
           children: [
             _ColoredMetricBucket(
-              label: 'Estimated Cost',
+              width: bucketWidth,
+              label: 'Projected Cost',
               value: _formatMoney(estimatedTotal),
-              width: bucketWidth,
               backgroundColor: const Color(0xFFEFF6FF),
               borderColor: const Color(0xFF2563EB),
               textColor: const Color(0xFF1D4ED8),
             ),
             _ColoredMetricBucket(
-              label: 'Estimated Profit',
+              width: bucketWidth,
+              label: 'Projected Profit',
               value: _formatMoney(estimatedProfit),
-              width: bucketWidth,
               backgroundColor: const Color(0xFFEFF6FF),
               borderColor: const Color(0xFF2563EB),
               textColor: const Color(0xFF1D4ED8),
             ),
             _ColoredMetricBucket(
-              label: 'Estimated Margin',
+              width: bucketWidth,
+              label: 'Projected Margin',
               value: '${estimatedMarginPercent.toStringAsFixed(1)}%',
-              width: bucketWidth,
               backgroundColor: const Color(0xFFEFF6FF),
               borderColor: const Color(0xFF2563EB),
               textColor: const Color(0xFF1D4ED8),
             ),
             _ColoredMetricBucket(
+              width: bucketWidth,
               label: 'Added Expenses',
               value: _formatMoney(additionalActualTotal),
-              width: bucketWidth,
               backgroundColor: const Color(0xFFFFF7ED),
               borderColor: const Color(0xFFF97316),
               textColor: const Color(0xFFC2410C),
             ),
             _ColoredMetricBucket(
-              label: 'Actual Cost Total',
-              value: _formatMoney(actualTotal),
               width: bucketWidth,
+              label: 'Actual Cost',
+              value: _formatMoney(actualTotal),
               backgroundColor: const Color(0xFFF0FDF4),
               borderColor: const Color(0xFF16A34A),
               textColor: const Color(0xFF15803D),
             ),
             _ColoredMetricBucket(
+              width: bucketWidth,
               label: 'Actual Profit',
               value: _formatMoney(actualProfit),
-              width: bucketWidth,
               backgroundColor: const Color(0xFFF0FDF4),
               borderColor: const Color(0xFF16A34A),
               textColor: const Color(0xFF15803D),
             ),
             _ColoredMetricBucket(
+              width: bucketWidth,
               label: 'Actual Margin',
               value: '${actualMarginPercent.toStringAsFixed(1)}%',
-              width: bucketWidth,
               backgroundColor: const Color(0xFFF0FDF4),
               borderColor: const Color(0xFF16A34A),
               textColor: const Color(0xFF15803D),
