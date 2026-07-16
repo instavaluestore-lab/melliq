@@ -5,9 +5,12 @@ import '../../company/models/company_context.dart';
 import '../models/project.dart';
 import '../models/project_stage_cost.dart';
 import '../models/project_stage_cost_item.dart';
+import '../models/project_task.dart';
 import '../services/project_service.dart';
 import '../services/project_stage_cost_service.dart';
 import '../services/project_stage_cost_item_service.dart';
+import '../services/project_task_service.dart';
+import '../widgets/project_tasks_card.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -27,6 +30,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   late final ProjectService projectService;
   late final ProjectStageCostService stageCostService;
   late final ProjectStageCostItemService stageCostItemService;
+  late final ProjectTaskService projectTaskService;
 
   final contractAmountController = TextEditingController();
 
@@ -38,6 +42,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   String selectedStatus = 'contract';
   List<ProjectStageCost> stageCosts = [];
   List<ProjectStageCostItem> stageCostItems = [];
+  List<ProjectTask> projectTasks = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
   final Map<String, TextEditingController> itemActualCostControllers = {};
@@ -80,6 +85,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     projectService = ProjectService(Supabase.instance.client);
     stageCostService = ProjectStageCostService(Supabase.instance.client);
     stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
+    projectTaskService = ProjectTaskService(Supabase.instance.client);
 
     loadProjectDetail();
   }
@@ -128,6 +134,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: project.id,
       );
 
+        final freshProjectTasks = await projectTaskService.getTasksForProject(
+          companyId: widget.companyContext.companyId,
+          projectId: project.id,
+        );
+
       _syncControllers(freshProject, freshStageCosts, freshStageCostItems);
 
       if (!mounted) return;
@@ -137,6 +148,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         selectedStatus = freshProject.status;
         stageCosts = freshStageCosts;
         stageCostItems = freshStageCostItems;
+          projectTasks = freshProjectTasks;
         isLoading = false;
       });
     } catch (error) {
@@ -577,6 +589,80 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     return (actualProfit / contractAmount) * 100;
   }
 
+  Future<void> addProjectTask() async {
+    final createdTask = await showDialog<ProjectTask>(
+      context: context,
+      builder: (context) {
+        return AddProjectTaskDialog(
+          onSave: ({
+            required title,
+            required description,
+            required priority,
+            required dueDate,
+          }) {
+            return projectTaskService.createTask(
+              companyId: widget.companyContext.companyId,
+              projectId: project.id,
+              title: title,
+              description: description,
+              priority: priority,
+              dueDate: dueDate,
+            );
+          },
+        );
+      },
+    );
+
+    if (createdTask == null || !mounted) return;
+
+    setState(() {
+      projectTasks = [...projectTasks, createdTask];
+    });
+  }
+
+  Future<void> toggleProjectTask(ProjectTask task) async {
+    try {
+      final updatedTask = task.isDone
+          ? await projectTaskService.reopenTask(task.id)
+          : await projectTaskService.markTaskDone(task.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectTasks = projectTasks
+            .map((existingTask) =>
+                existingTask.id == updatedTask.id ? updatedTask : existingTask)
+            .toList();
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> deleteProjectTask(ProjectTask task) async {
+    try {
+      await projectTaskService.deleteTask(task.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectTasks = projectTasks
+            .where((existingTask) => existingTask.id != task.id)
+            .toList();
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = isLoading
@@ -716,6 +802,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     ),
                   ),
                 ),
+                  // _ProjectTasksCard_INSERTED_MARKER
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ProjectTasksCard(
+                        tasks: projectTasks,
+                        enabled: !isSaving,
+                        onAddTask: addProjectTask,
+                        onToggleTask: toggleProjectTask,
+                        onDeleteTask: deleteProjectTask,
+                      ),
+                    ),
+                  ),
                 if (errorMessage != null)
                   SliverToBoxAdapter(
                     child: Padding(
