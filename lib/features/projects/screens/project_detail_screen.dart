@@ -3,15 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../company/models/company_context.dart';
 import '../models/project.dart';
+import '../models/project_file.dart';
 import '../models/project_stage_cost.dart';
 import '../models/project_stage_cost_item.dart';
 import '../models/project_task.dart';
 import '../models/project_task_assignee.dart';
 import '../services/project_service.dart';
+import '../services/project_file_service.dart';
 import '../services/project_stage_cost_service.dart';
 import '../services/project_stage_cost_item_service.dart';
 import '../services/project_task_service.dart';
 import '../widgets/project_tasks_card.dart';
+import '../widgets/project_files_card.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -29,6 +32,7 @@ class ProjectDetailScreen extends StatefulWidget {
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   late final ProjectService projectService;
+  late final ProjectFileService projectFileService;
   late final ProjectStageCostService stageCostService;
   late final ProjectStageCostItemService stageCostItemService;
   late final ProjectTaskService projectTaskService;
@@ -44,6 +48,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectStageCost> stageCosts = [];
   List<ProjectStageCostItem> stageCostItems = [];
   List<ProjectTask> projectTasks = [];
+  List<ProjectFile> projectFiles = [];
   List<ProjectTaskAssignee> projectTaskAssignees = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
@@ -85,6 +90,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     contractAmountController.text = _formatMoneyInput(project.contractAmount);
 
     projectService = ProjectService(Supabase.instance.client);
+    projectFileService = ProjectFileService(Supabase.instance.client);
     stageCostService = ProjectStageCostService(Supabase.instance.client);
     stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
     projectTaskService = ProjectTaskService(Supabase.instance.client);
@@ -141,6 +147,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           projectId: project.id,
         );
 
+        final freshProjectFiles = await projectFileService.getFilesForProject(
+          companyId: widget.companyContext.companyId,
+          projectId: project.id,
+        );
+
       _syncControllers(freshProject, freshStageCosts, freshStageCostItems);
 
       if (!mounted) return;
@@ -151,6 +162,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         stageCosts = freshStageCosts;
         stageCostItems = freshStageCostItems;
           projectTasks = freshProjectTasks;
+          projectFiles = freshProjectFiles;
         isLoading = false;
       });
     } catch (error) {
@@ -668,6 +680,74 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> uploadProjectFile() async {
+    final didUpload = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return ProjectFileUploadDialog(
+          onUpload: ({
+            required pickedFile,
+            required fileType,
+            required description,
+          }) async {
+            final fileBytes = pickedFile.bytes;
+
+            if (fileBytes == null) {
+              throw Exception('Could not read selected file.');
+            }
+
+            await projectFileService.uploadProjectFile(
+              companyId: widget.companyContext.companyId,
+              projectId: project.id,
+              fileName: pickedFile.name,
+              fileBytes: fileBytes,
+              fileType: fileType,
+              mimeType: null,
+              description: description,
+            );
+          },
+        );
+      },
+    );
+
+    if (didUpload != true || !mounted) return;
+
+    await loadProjectDetail();
+  }
+
+  Future<void> openProjectFile(ProjectFile file) async {
+    try {
+      final signedUrl = await projectFileService.createSignedUrl(file);
+      await openProjectFileUrl(signedUrl);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> deleteProjectFile(ProjectFile file) async {
+    try {
+      await projectFileService.deleteProjectFile(file);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectFiles = projectFiles
+            .where((existingFile) => existingFile.id != file.id)
+            .toList();
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = isLoading
@@ -807,6 +887,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     ),
                   ),
                 ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ProjectFilesCard(
+                        files: projectFiles,
+                        enabled: !isSaving,
+                        onUploadFile: uploadProjectFile,
+                        onOpenFile: openProjectFile,
+                        onDeleteFile: deleteProjectFile,
+                      ),
+                    ),
+                  ),
                   // _ProjectTasksCard_INSERTED_MARKER
                   SliverToBoxAdapter(
                     child: Padding(
