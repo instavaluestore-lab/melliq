@@ -6,6 +6,7 @@ import '../models/project.dart';
 import '../models/project_stage_cost.dart';
 import '../models/project_stage_cost_item.dart';
 import '../models/project_task.dart';
+import '../models/project_task_assignee.dart';
 import '../services/project_service.dart';
 import '../services/project_stage_cost_service.dart';
 import '../services/project_stage_cost_item_service.dart';
@@ -43,6 +44,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectStageCost> stageCosts = [];
   List<ProjectStageCostItem> stageCostItems = [];
   List<ProjectTask> projectTasks = [];
+  List<ProjectTaskAssignee> projectTaskAssignees = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
   final Map<String, TextEditingController> itemActualCostControllers = {};
@@ -594,10 +596,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       context: context,
       builder: (context) {
         return AddProjectTaskDialog(
+          assignees: projectTaskAssignees,
           onSave: ({
             required title,
             required description,
             required priority,
+            required assignedTo,
             required dueDate,
           }) {
             return projectTaskService.createTask(
@@ -606,6 +610,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               title: title,
               description: description,
               priority: priority,
+              assignedTo: assignedTo,
               dueDate: dueDate,
             );
           },
@@ -808,6 +813,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: ProjectTasksCard(
                         tasks: projectTasks,
+                        assignees: projectTaskAssignees,
                         enabled: !isSaving,
                         onAddTask: addProjectTask,
                         onToggleTask: toggleProjectTask,

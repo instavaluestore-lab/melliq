@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../models/project_task.dart';
+import '../models/project_task_assignee.dart';
 
 class ProjectTasksCard extends StatelessWidget {
   const ProjectTasksCard({
     super.key,
     required this.tasks,
+    required this.assignees,
     required this.enabled,
     required this.onAddTask,
     required this.onToggleTask,
@@ -13,6 +15,7 @@ class ProjectTasksCard extends StatelessWidget {
   });
 
   final List<ProjectTask> tasks;
+  final List<ProjectTaskAssignee> assignees;
   final bool enabled;
   final VoidCallback onAddTask;
   final ValueChanged<ProjectTask> onToggleTask;
@@ -82,6 +85,7 @@ class ProjectTasksCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _ProjectTaskTile(
                     task: task,
+                    assignees: assignees,
                     enabled: enabled,
                     onToggle: () => onToggleTask(task),
                     onDelete: () => onDeleteTask(task),
@@ -98,13 +102,17 @@ class ProjectTasksCard extends StatelessWidget {
 class AddProjectTaskDialog extends StatefulWidget {
   const AddProjectTaskDialog({
     super.key,
+    required this.assignees,
     required this.onSave,
   });
+
+  final List<ProjectTaskAssignee> assignees;
 
   final Future<ProjectTask> Function({
     required String title,
     required String description,
     required String priority,
+    required String? assignedTo,
     required DateTime? dueDate,
   }) onSave;
 
@@ -117,6 +125,7 @@ class _AddProjectTaskDialogState extends State<AddProjectTaskDialog> {
   final descriptionController = TextEditingController();
 
   String selectedPriority = 'normal';
+  String? selectedAssigneeId;
   DateTime? selectedDueDate;
   bool isSaving = false;
   String? errorMessage;
@@ -165,6 +174,7 @@ class _AddProjectTaskDialogState extends State<AddProjectTaskDialog> {
         title: title,
         description: descriptionController.text,
         priority: selectedPriority,
+        assignedTo: selectedAssigneeId,
         dueDate: selectedDueDate,
       );
 
@@ -215,6 +225,30 @@ class _AddProjectTaskDialogState extends State<AddProjectTaskDialog> {
                   labelText: 'Notes',
                   alignLabelWithHint: true,
                 ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: selectedAssigneeId,
+                decoration: const InputDecoration(labelText: 'Assigned to'),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Unassigned'),
+                  ),
+                  ...widget.assignees.map(
+                    (assignee) => DropdownMenuItem<String?>(
+                      value: assignee.userId,
+                      child: Text(assignee.displayName),
+                    ),
+                  ),
+                ],
+                onChanged: isSaving
+                    ? null
+                    : (value) {
+                        setState(() {
+                          selectedAssigneeId = value;
+                        });
+                      },
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -313,15 +347,29 @@ class _TaskMetricPill extends StatelessWidget {
 class _ProjectTaskTile extends StatelessWidget {
   const _ProjectTaskTile({
     required this.task,
+    required this.assignees,
     required this.enabled,
     required this.onToggle,
     required this.onDelete,
   });
 
   final ProjectTask task;
+  final List<ProjectTaskAssignee> assignees;
   final bool enabled;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+
+  String _assignedNameFor(String? userId) {
+    if (userId == null || userId.isEmpty) return 'Unassigned';
+
+    for (final assignee in assignees) {
+      if (assignee.userId == userId) {
+        return assignee.displayName;
+      }
+    }
+
+    return 'Unknown user';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -381,6 +429,17 @@ class _ProjectTaskTile extends StatelessWidget {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(46, 0, 8, 8),
+            child: Text(
+              'Assigned to: ${_assignedNameFor(task.assignedTo)}',
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(left: 46),
             child: Wrap(

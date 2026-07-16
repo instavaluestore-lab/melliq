@@ -1,11 +1,25 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/project_task.dart';
+import '../models/project_task_assignee.dart';
 
 class ProjectTaskService {
   ProjectTaskService(this._supabase);
 
   final SupabaseClient _supabase;
+
+  Future<List<ProjectTaskAssignee>> getAssignableMembers({
+    required String companyId,
+  }) async {
+    final rows = await _supabase
+        .from('company_members')
+        .select('user_id, role, status, profiles(full_name, email)')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .order('created_at', ascending: true);
+
+    return rows.map<ProjectTaskAssignee>(ProjectTaskAssignee.fromMap).toList();
+  }
 
   Future<List<ProjectTask>> getTasksForProject({
     required String companyId,
