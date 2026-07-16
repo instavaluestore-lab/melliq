@@ -4,17 +4,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../company/models/company_context.dart';
 import '../models/project.dart';
 import '../models/project_file.dart';
+import '../models/material_item.dart';
 import '../models/project_stage_cost.dart';
 import '../models/project_stage_cost_item.dart';
 import '../models/project_task.dart';
 import '../models/project_task_assignee.dart';
 import '../services/project_service.dart';
 import '../services/project_file_service.dart';
+import '../services/material_service.dart';
 import '../services/project_stage_cost_service.dart';
 import '../services/project_stage_cost_item_service.dart';
 import '../services/project_task_service.dart';
 import '../widgets/project_tasks_card.dart';
 import '../widgets/project_files_card.dart';
+import '../widgets/project_materials_card.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -33,6 +36,7 @@ class ProjectDetailScreen extends StatefulWidget {
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   late final ProjectService projectService;
   late final ProjectFileService projectFileService;
+  late final MaterialService materialService;
   late final ProjectStageCostService stageCostService;
   late final ProjectStageCostItemService stageCostItemService;
   late final ProjectTaskService projectTaskService;
@@ -49,6 +53,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectStageCostItem> stageCostItems = [];
   List<ProjectTask> projectTasks = [];
   List<ProjectFile> projectFiles = [];
+  List<MaterialItem> projectMaterials = [];
   List<ProjectTaskAssignee> projectTaskAssignees = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
@@ -91,6 +96,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     projectService = ProjectService(Supabase.instance.client);
     projectFileService = ProjectFileService(Supabase.instance.client);
+    materialService = MaterialService(Supabase.instance.client);
     stageCostService = ProjectStageCostService(Supabase.instance.client);
     stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
     projectTaskService = ProjectTaskService(Supabase.instance.client);
@@ -152,6 +158,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           projectId: project.id,
         );
 
+        final freshProjectMaterials = await materialService.getMaterialsForProject(
+          companyId: widget.companyContext.companyId,
+          projectId: project.id,
+        );
+
       _syncControllers(freshProject, freshStageCosts, freshStageCostItems);
 
       if (!mounted) return;
@@ -163,6 +174,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         stageCostItems = freshStageCostItems;
           projectTasks = freshProjectTasks;
           projectFiles = freshProjectFiles;
+          projectMaterials = freshProjectMaterials;
         isLoading = false;
       });
     } catch (error) {
@@ -473,6 +485,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         );
       }
 
+      final savedMaterialActualTotal = projectMaterials.fold<double>(
+        0,
+        (total, material) => total + material.totalCost,
+      );
+
       await projectService.updateProjectStatus(
         projectId: project.id,
         status: selectedStatus,
@@ -482,7 +499,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: project.id,
         contractAmount: savedContractAmount,
         estimatedCost: savedEstimatedTotal,
-        actualCost: savedActualTotal,
+        actualCost: savedActualTotal + savedMaterialActualTotal,
       );
 
       await loadProjectDetail();
@@ -575,8 +592,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
   }
 
+  double get materialActualTotal {
+    return projectMaterials.fold<double>(
+      0,
+      (total, material) => total + material.totalCost,
+    );
+  }
+
   double get actualTotal {
-    return baseActualTotal + additionalActualTotal;
+    return baseActualTotal + additionalActualTotal + materialActualTotal;
   }
 
   double get estimatedProfit {
@@ -669,6 +693,96 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       setState(() {
         projectTasks = projectTasks
             .where((existingTask) => existingTask.id != task.id)
+            .toList();
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> addProjectMaterial() async {
+    final didSave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return MaterialDialog(
+          onSave: ({
+            required name,
+            required category,
+            required quantity,
+            required unit,
+            required unitCost,
+            required supplier,
+            required status,
+          }) async {
+            await materialService.createMaterial(
+              companyId: widget.companyContext.companyId,
+              projectId: project.id,
+              name: name,
+              category: category,
+              quantity: quantity,
+              unit: unit,
+              unitCost: unitCost,
+              supplier: supplier,
+              status: status,
+            );
+          },
+        );
+      },
+    );
+
+    if (didSave != true || !mounted) return;
+
+    await loadProjectDetail();
+  }
+
+  Future<void> editProjectMaterial(MaterialItem material) async {
+    final didSave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return MaterialDialog(
+          material: material,
+          onSave: ({
+            required name,
+            required category,
+            required quantity,
+            required unit,
+            required unitCost,
+            required supplier,
+            required status,
+          }) async {
+            await materialService.updateMaterial(
+              id: material.id,
+              name: name,
+              category: category,
+              quantity: quantity,
+              unit: unit,
+              unitCost: unitCost,
+              supplier: supplier,
+              status: status,
+            );
+          },
+        );
+      },
+    );
+
+    if (didSave != true || !mounted) return;
+
+    await loadProjectDetail();
+  }
+
+  Future<void> deleteProjectMaterial(MaterialItem material) async {
+    try {
+      await materialService.deleteMaterial(material.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectMaterials = projectMaterials
+            .where((existingMaterial) => existingMaterial.id != material.id)
             .toList();
       });
     } catch (error) {
@@ -794,6 +908,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           estimatedTotal: estimatedTotal,
                           actualTotal: actualTotal,
                           additionalActualTotal: additionalActualTotal,
+              materialActualTotal: materialActualTotal,
                           estimatedProfit: estimatedProfit,
                           actualProfit: actualProfit,
                           estimatedMarginPercent: estimatedMarginPercent,
@@ -822,6 +937,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       estimatedTotal: estimatedTotal,
                       actualTotal: actualTotal,
                         additionalActualTotal: additionalActualTotal,
+              materialActualTotal: materialActualTotal,
                       estimatedProfit: estimatedProfit,
                       actualProfit: actualProfit,
                       estimatedMarginPercent: estimatedMarginPercent,
@@ -887,6 +1003,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     ),
                   ),
                 ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ProjectMaterialsCard(
+                        materials: projectMaterials,
+                        enabled: !isSaving,
+                        onAddMaterial: addProjectMaterial,
+                        onEditMaterial: editProjectMaterial,
+                        onDeleteMaterial: deleteProjectMaterial,
+                      ),
+                    ),
+                  ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -1075,6 +1203,7 @@ class _ProjectSummaryCard extends StatelessWidget {
     required this.estimatedTotal,
     required this.actualTotal,
     required this.additionalActualTotal,
+    required this.materialActualTotal,
     required this.estimatedProfit,
     required this.actualProfit,
     required this.estimatedMarginPercent,
@@ -1089,6 +1218,7 @@ class _ProjectSummaryCard extends StatelessWidget {
   final double estimatedTotal;
   final double actualTotal;
   final double additionalActualTotal;
+  final double materialActualTotal;
   final double estimatedProfit;
   final double actualProfit;
   final double estimatedMarginPercent;
@@ -1154,6 +1284,7 @@ class _ProjectSummaryCard extends StatelessWidget {
             estimatedTotal: estimatedTotal,
             actualTotal: actualTotal,
             additionalActualTotal: additionalActualTotal,
+                        materialActualTotal: materialActualTotal,
             estimatedProfit: estimatedProfit,
             actualProfit: actualProfit,
             estimatedMarginPercent: estimatedMarginPercent,
@@ -1170,6 +1301,7 @@ class _MoneyGrid extends StatelessWidget {
     required this.estimatedTotal,
     required this.actualTotal,
     required this.additionalActualTotal,
+    required this.materialActualTotal,
     required this.estimatedProfit,
     required this.actualProfit,
     required this.estimatedMarginPercent,
@@ -1179,6 +1311,7 @@ class _MoneyGrid extends StatelessWidget {
   final double estimatedTotal;
   final double actualTotal;
   final double additionalActualTotal;
+  final double materialActualTotal;
   final double estimatedProfit;
   final double actualProfit;
   final double estimatedMarginPercent;
