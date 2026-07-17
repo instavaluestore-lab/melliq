@@ -6,6 +6,7 @@ import '../../company/services/company_service.dart';
 import '../../customers/screens/customers_list_screen.dart';
 import '../../projects/screens/projects_list_screen.dart';
 import '../../projects/services/project_service.dart';
+import '../../team/screens/team_members_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -229,6 +230,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                         },
                         child: const Text('View Projects'),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TeamMembersScreen(
+                                companyContext: companyContext!,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Manage Team'),
                       ),
                     ),
                   ],
