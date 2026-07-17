@@ -7,16 +7,24 @@ class ProjectMaterialsCard extends StatelessWidget {
     super.key,
     required this.materials,
     required this.enabled,
+    required this.canManageMaterials,
+    required this.canDeleteMaterials,
+    required this.canUpdateStatus,
     required this.onAddMaterial,
     required this.onEditMaterial,
     required this.onDeleteMaterial,
+    required this.onUpdateMaterialStatus,
   });
 
   final List<MaterialItem> materials;
   final bool enabled;
+  final bool canManageMaterials;
+  final bool canDeleteMaterials;
+  final bool canUpdateStatus;
   final VoidCallback onAddMaterial;
   final ValueChanged<MaterialItem> onEditMaterial;
   final ValueChanged<MaterialItem> onDeleteMaterial;
+  final void Function(MaterialItem material, String status) onUpdateMaterialStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +96,7 @@ class ProjectMaterialsCard extends StatelessWidget {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: enabled ? onAddMaterial : null,
+                onPressed: enabled && canManageMaterials ? onAddMaterial : null,
                 icon: const Icon(Icons.add_box_outlined),
                 label: const Text('Add Material'),
               ),
@@ -112,6 +120,12 @@ class ProjectMaterialsCard extends StatelessWidget {
                     enabled: enabled,
                     onEdit: () => onEditMaterial(material),
                     onDelete: () => onDeleteMaterial(material),
+                    onUpdateStatus: (status) {
+                      onUpdateMaterialStatus(material, status);
+                    },
+                    canEditMaterial: canManageMaterials,
+                    canDeleteMaterial: canDeleteMaterials,
+                    canUpdateStatus: canUpdateStatus,
                   ),
                 ),
               ),
@@ -448,14 +462,22 @@ class _MaterialTile extends StatelessWidget {
   const _MaterialTile({
     required this.material,
     required this.enabled,
+    required this.canEditMaterial,
+    required this.canDeleteMaterial,
+    required this.canUpdateStatus,
     required this.onEdit,
     required this.onDelete,
+    required this.onUpdateStatus,
   });
 
   final MaterialItem material;
   final bool enabled;
+  final bool canEditMaterial;
+  final bool canDeleteMaterial;
+  final bool canUpdateStatus;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<String> onUpdateStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -539,15 +561,34 @@ class _MaterialTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: enabled ? onEdit : null,
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit material',
-          ),
-          IconButton(
-            onPressed: enabled ? onDelete : null,
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Delete material',
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PopupMenuButton<String>(
+                tooltip: 'Update status',
+                enabled: enabled && canUpdateStatus,
+                icon: const Icon(Icons.sync_alt_outlined),
+                onSelected: onUpdateStatus,
+                itemBuilder: (context) {
+                  return const [
+                    PopupMenuItem(value: 'needed', child: Text('Needed')),
+                    PopupMenuItem(value: 'ordered', child: Text('Ordered')),
+                    PopupMenuItem(value: 'received', child: Text('Received')),
+                    PopupMenuItem(value: 'installed', child: Text('Installed')),
+                  ];
+                },
+              ),
+              IconButton(
+                onPressed: enabled && canEditMaterial ? onEdit : null,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit material',
+              ),
+              IconButton(
+                onPressed: enabled && canDeleteMaterial ? onDelete : null,
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Delete material',
+              ),
+            ],
           ),
         ],
       ),

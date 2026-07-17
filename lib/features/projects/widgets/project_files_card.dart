@@ -9,6 +9,8 @@ class ProjectFilesCard extends StatelessWidget {
     super.key,
     required this.files,
     required this.enabled,
+    required this.canUploadFile,
+    required this.canDeleteFile,
     required this.onUploadFile,
     required this.onOpenFile,
     required this.onDeleteFile,
@@ -16,6 +18,8 @@ class ProjectFilesCard extends StatelessWidget {
 
   final List<ProjectFile> files;
   final bool enabled;
+  final bool canUploadFile;
+  final bool canDeleteFile;
   final VoidCallback onUploadFile;
   final ValueChanged<ProjectFile> onOpenFile;
   final ValueChanged<ProjectFile> onDeleteFile;
@@ -62,7 +66,7 @@ class ProjectFilesCard extends StatelessWidget {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: enabled ? onUploadFile : null,
+                onPressed: enabled && canUploadFile ? onUploadFile : null,
                 icon: const Icon(Icons.upload_file_outlined),
                 label: const Text('Upload File or Photo'),
               ),
@@ -86,6 +90,7 @@ class ProjectFilesCard extends StatelessWidget {
                     enabled: enabled,
                     onOpen: () => onOpenFile(file),
                     onDelete: () => onDeleteFile(file),
+                    canDeleteFile: canDeleteFile,
                   ),
                 ),
               ),
@@ -299,12 +304,14 @@ class _ProjectFileTile extends StatelessWidget {
   const _ProjectFileTile({
     required this.file,
     required this.enabled,
+    required this.canDeleteFile,
     required this.onOpen,
     required this.onDelete,
   });
 
   final ProjectFile file;
   final bool enabled;
+  final bool canDeleteFile;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
 
@@ -368,7 +375,7 @@ class _ProjectFileTile extends StatelessWidget {
             tooltip: 'Open file',
           ),
           IconButton(
-            onPressed: enabled ? onDelete : null,
+            onPressed: enabled && canDeleteFile ? onDelete : null,
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Delete file',
           ),

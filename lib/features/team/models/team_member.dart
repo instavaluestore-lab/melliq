@@ -42,8 +42,10 @@ class TeamMember {
 
   String get roleLabel {
     switch (role) {
-      case 'owner':
-        return 'OWNER';
+      case 'primary_admin':
+        return 'PRIMARY ADMIN';
+      case 'cfo':
+        return 'CFO';
       case 'admin':
         return 'ADMIN';
       case 'manager':
@@ -70,7 +72,7 @@ class TeamMember {
     }
   }
 
-  bool get isOwner => role == 'owner';
+  bool get isPrimaryAdmin => role == 'primary_admin';
 
   bool get isActive => status == 'active';
 

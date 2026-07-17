@@ -41,6 +41,8 @@ class TeamInvitation {
 
   String get roleLabel {
     return switch (role) {
+      'primary_admin' => 'PRIMARY ADMIN',
+      'cfo' => 'CFO',
       'admin' => 'ADMIN',
       'manager' => 'MANAGER',
       'field_user' => 'FIELD USER',

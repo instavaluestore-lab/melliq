@@ -794,6 +794,28 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> updateProjectMaterialStatus(
+    MaterialItem material,
+    String status,
+  ) async {
+    try {
+      await materialService.updateMaterialStatus(
+        id: material.id,
+        status: status,
+      );
+
+      if (!mounted) return;
+
+      await loadProjectDetail();
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
   Future<void> uploadProjectFile() async {
     final didUpload = await showDialog<bool>(
       context: context,
@@ -864,6 +886,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canViewProjectFinancials = widget.companyContext.canViewFinancials;
+    final canManageProjectFinancials =
+        widget.companyContext.canManageProjectFinancials;
+    final canManageMaterials = widget.companyContext.canEditMaterials;
+    final canDeleteMaterials = widget.companyContext.canDeleteMaterials;
+    final canUpdateMaterialStatus =
+        widget.companyContext.canUpdateMaterialStatus;
+    final canUploadProjectFiles = widget.companyContext.canUploadProjectFiles;
+    final canDeleteProjectFiles = widget.companyContext.canDeleteProjectFiles;
+    final canCreateTasks = widget.companyContext.canCreateTasks;
+    final canCompleteTasks = widget.companyContext.canCompleteTasks;
+
     final content = isLoading
         ? const [
             SliverToBoxAdapter(
@@ -889,7 +923,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     child: _ProjectTitleBlock(project: project),
                   ),
                 ),
-                  if (MediaQuery.of(context).size.shortestSide < 1000)
+                  if (canViewProjectFinancials &&
+                      MediaQuery.of(context).size.shortestSide < 1000)
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -913,12 +948,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           actualProfit: actualProfit,
                           estimatedMarginPercent: estimatedMarginPercent,
                           actualMarginPercent: actualMarginPercent,
-                          enabled: !isSaving,
+                          enabled: !isSaving && canManageProjectFinancials,
                           onChanged: () => setState(() {}),
                         ),
                       ),
                     ),
-                  if (MediaQuery.of(context).size.shortestSide >= 1000)
+                  if (canViewProjectFinancials &&
+                      MediaQuery.of(context).size.shortestSide >= 1000)
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _StickySummaryHeader(
@@ -942,15 +978,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       actualProfit: actualProfit,
                       estimatedMarginPercent: estimatedMarginPercent,
                       actualMarginPercent: actualMarginPercent,
-                      enabled: !isSaving,
+                      enabled: !isSaving && canManageProjectFinancials,
                       onChanged: () => setState(() {}),
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: _StageCostsCard(
+                if (canViewProjectFinancials)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: _StageCostsCard(
                       stageCosts: stageCosts,
                       stageCostItems: stageCostItems,
                       descriptionControllers: descriptionControllers,
@@ -999,19 +1036,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       },
                       onAddStageCostItem: addStageCostItem,
                       onDeleteStageCostItem: deleteStageCostItem,
-                      onAddMiscellaneous: addMiscellaneousExpense,
+                        onAddMiscellaneous: addMiscellaneousExpense,
+                      ),
                     ),
                   ),
-                ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: ProjectMaterialsCard(
                         materials: projectMaterials,
                         enabled: !isSaving,
+                        canManageMaterials: canManageMaterials,
+                        canDeleteMaterials: canDeleteMaterials,
+                        canUpdateStatus: canUpdateMaterialStatus,
                         onAddMaterial: addProjectMaterial,
                         onEditMaterial: editProjectMaterial,
                         onDeleteMaterial: deleteProjectMaterial,
+                        onUpdateMaterialStatus: updateProjectMaterialStatus,
                       ),
                     ),
                   ),
@@ -1021,6 +1062,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       child: ProjectFilesCard(
                         files: projectFiles,
                         enabled: !isSaving,
+                        canUploadFile: canUploadProjectFiles,
+                        canDeleteFile: canDeleteProjectFiles,
                         onUploadFile: uploadProjectFile,
                         onOpenFile: openProjectFile,
                         onDeleteFile: deleteProjectFile,
@@ -1035,6 +1078,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         tasks: projectTasks,
                         assignees: projectTaskAssignees,
                         enabled: !isSaving,
+                        canAddTask: canCreateTasks,
+                        canCompleteTask: canCompleteTasks,
+                        canDeleteTask: canCreateTasks,
                         onAddTask: addProjectTask,
                         onToggleTask: toggleProjectTask,
                         onDeleteTask: deleteProjectTask,
@@ -1056,11 +1102,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                     ),
                   ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                    child: ElevatedButton(
-                      onPressed: isSaving ? null : saveProjectDetail,
+                if (canManageProjectFinancials)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                      child: ElevatedButton(
+                        onPressed: isSaving ? null : saveProjectDetail,
                       child: isSaving
                           ? const SizedBox(
                               height: 22,
@@ -1070,10 +1117,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Save Project Updates'),
+                            : const Text('Save Project Updates'),
+                      ),
                     ),
                   ),
-                ),
               ];
 
     return Scaffold(

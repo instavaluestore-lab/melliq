@@ -9,6 +9,9 @@ class ProjectTasksCard extends StatelessWidget {
     required this.tasks,
     required this.assignees,
     required this.enabled,
+    required this.canAddTask,
+    required this.canCompleteTask,
+    required this.canDeleteTask,
     required this.onAddTask,
     required this.onToggleTask,
     required this.onDeleteTask,
@@ -17,6 +20,9 @@ class ProjectTasksCard extends StatelessWidget {
   final List<ProjectTask> tasks;
   final List<ProjectTaskAssignee> assignees;
   final bool enabled;
+  final bool canAddTask;
+  final bool canCompleteTask;
+  final bool canDeleteTask;
   final VoidCallback onAddTask;
   final ValueChanged<ProjectTask> onToggleTask;
   final ValueChanged<ProjectTask> onDeleteTask;
@@ -64,7 +70,7 @@ class ProjectTasksCard extends StatelessWidget {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: enabled ? onAddTask : null,
+                onPressed: enabled && canAddTask ? onAddTask : null,
                 icon: const Icon(Icons.add_task_outlined),
                 label: const Text('Add Task'),
               ),
@@ -89,6 +95,8 @@ class ProjectTasksCard extends StatelessWidget {
                     enabled: enabled,
                     onToggle: () => onToggleTask(task),
                     onDelete: () => onDeleteTask(task),
+                    canCompleteTask: canCompleteTask,
+                    canDeleteTask: canDeleteTask,
                   ),
                 ),
               ),
@@ -349,6 +357,8 @@ class _ProjectTaskTile extends StatelessWidget {
     required this.task,
     required this.assignees,
     required this.enabled,
+    required this.canCompleteTask,
+    required this.canDeleteTask,
     required this.onToggle,
     required this.onDelete,
   });
@@ -356,6 +366,8 @@ class _ProjectTaskTile extends StatelessWidget {
   final ProjectTask task;
   final List<ProjectTaskAssignee> assignees;
   final bool enabled;
+  final bool canCompleteTask;
+  final bool canDeleteTask;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
@@ -396,7 +408,7 @@ class _ProjectTaskTile extends StatelessWidget {
             children: [
               Checkbox(
                 value: task.isDone,
-                onChanged: enabled ? (_) => onToggle() : null,
+                onChanged: enabled && canCompleteTask ? (_) => onToggle() : null,
               ),
               const SizedBox(width: 6),
               Expanded(
@@ -411,7 +423,7 @@ class _ProjectTaskTile extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: enabled ? onDelete : null,
+                onPressed: enabled && canDeleteTask ? onDelete : null,
                 icon: const Icon(Icons.delete_outline),
                 tooltip: 'Delete task',
               ),

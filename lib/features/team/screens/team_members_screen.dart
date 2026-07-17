@@ -75,8 +75,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   bool get canManageTeam {
-    return widget.companyContext.role == 'owner' ||
-        widget.companyContext.role == 'admin';
+    return widget.companyContext.canManageTeam;
   }
 
   Future<void> createInvitation({
@@ -145,7 +144,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<void> updateRole(TeamMember member, String role) async {
-    if (member.isOwner || isSaving) return;
+    if (member.isPrimaryAdmin || isSaving) return;
 
     setState(() {
       isSaving = true;
@@ -176,7 +175,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<void> toggleStatus(TeamMember member) async {
-    if (member.isOwner || isSaving) return;
+    if (member.isPrimaryAdmin || isSaving) return;
 
     setState(() {
       isSaving = true;
@@ -208,7 +207,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<void> showRolePicker(TeamMember member) async {
-    if (!canManageTeam || member.isOwner || isSaving) return;
+    if (!canManageTeam || member.isPrimaryAdmin || isSaving) return;
 
     final selectedRole = await showDialog<String>(
       context: context,
@@ -216,6 +215,14 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
         return SimpleDialog(
           title: Text('Change role for ${member.displayName}'),
           children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop('primary_admin'),
+              child: const Text('Primary Admin'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop('cfo'),
+              child: const Text('CFO'),
+            ),
             SimpleDialogOption(
               onPressed: () => Navigator.of(context).pop('admin'),
               child: const Text('Admin'),
@@ -347,7 +354,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                     Text(
                       canManageTeam
                           ? 'Invite employees and assign their company role.'
-                          : 'You can view team members, but only owners and admins can manage roles.',
+                          : 'You can view team members, but only Primary Admin and CFO can manage roles.',
                       style: const TextStyle(
                         color: Color(0xFF475569),
                         fontSize: 13,
@@ -447,7 +454,7 @@ class _TeamMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canEditThisMember = canManageTeam && !member.isOwner && !isSaving;
+    final canEditThisMember = canManageTeam && !member.isPrimaryAdmin && !isSaving;
 
     return Card(
       elevation: 0,
@@ -494,7 +501,7 @@ class _TeamMemberCard extends StatelessWidget {
                   textColor: const Color(0xFF166534),
                   backgroundColor: const Color(0xFFF0FDF4),
                 ),
-                if (member.isOwner)
+                if (member.isPrimaryAdmin)
                   const _SmallBadge(
                     label: 'PROTECTED',
                     textColor: Color(0xFF7C2D12),
@@ -716,6 +723,11 @@ class _InviteTeamMemberDialogState extends State<_InviteTeamMemberDialog> {
                     labelText: 'Role',
                   ),
                   items: const [
+                    DropdownMenuItem(
+                      value: 'primary_admin',
+                      child: Text('Primary Admin'),
+                    ),
+                    DropdownMenuItem(value: 'cfo', child: Text('CFO')),
                     DropdownMenuItem(value: 'admin', child: Text('Admin')),
                     DropdownMenuItem(value: 'manager', child: Text('Manager')),
                     DropdownMenuItem(
