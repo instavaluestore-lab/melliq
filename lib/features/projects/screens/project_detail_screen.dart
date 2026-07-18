@@ -18,6 +18,9 @@ import '../services/project_task_service.dart';
 import '../widgets/project_tasks_card.dart';
 import '../widgets/project_files_card.dart';
 import '../widgets/project_materials_card.dart';
+import '../widgets/project_notes_card.dart';
+import '../models/project_note.dart';
+import '../services/project_note_service.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   const ProjectDetailScreen({
@@ -40,6 +43,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   late final ProjectStageCostService stageCostService;
   late final ProjectStageCostItemService stageCostItemService;
   late final ProjectTaskService projectTaskService;
+  late final ProjectNoteService projectNoteService;
 
   final contractAmountController = TextEditingController();
 
@@ -54,6 +58,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectTask> projectTasks = [];
   List<ProjectFile> projectFiles = [];
   List<MaterialItem> projectMaterials = [];
+  List<ProjectNote> projectNotes = [];
   List<ProjectTaskAssignee> projectTaskAssignees = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
@@ -100,6 +105,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     stageCostService = ProjectStageCostService(Supabase.instance.client);
     stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
     projectTaskService = ProjectTaskService(Supabase.instance.client);
+    projectNoteService = ProjectNoteService(Supabase.instance.client);
 
     loadProjectDetail();
   }
@@ -858,6 +864,64 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> addProjectNote(String noteType, String body) async {
+    final currentProject = project;
+
+    setState(() {
+      isSaving = true;
+      errorMessage = null;
+    });
+
+    try {
+      final note = await projectNoteService.createProjectNote(
+        companyId: currentProject.companyId,
+        projectId: currentProject.id,
+        noteType: noteType,
+        body: body,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        projectNotes = [note, ...projectNotes];
+        isSaving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isSaving = false;
+      });
+    }
+  }
+
+  Future<void> deleteProjectNote(ProjectNote note) async {
+    setState(() {
+      isSaving = true;
+      errorMessage = null;
+    });
+
+    try {
+      await projectNoteService.deleteProjectNote(note.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectNotes =
+            projectNotes.where((projectNote) => projectNote.id != note.id).toList();
+        isSaving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isSaving = false;
+      });
+    }
+  }
+
   Future<void> uploadProjectFile() async {
     final didUpload = await showDialog<bool>(
       context: context,
@@ -938,6 +1002,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         widget.companyContext.canUpdateMaterialStatus;
     final canUploadProjectFiles = widget.companyContext.canUploadProjectFiles;
     final canDeleteProjectFiles = widget.companyContext.canDeleteProjectFiles;
+    final canAddProjectNotes = !widget.companyContext.canViewOnly;
+    final canDeleteProjectNotes =
+        widget.companyContext.isPrimaryAdmin ||
+        widget.companyContext.isCfo ||
+        widget.companyContext.isAdmin ||
+        widget.companyContext.isManager;
     final canCreateTasks = widget.companyContext.canCreateTasks;
     final canCompleteTasks = widget.companyContext.canCompleteTasks;
     final canDeleteTasks = widget.companyContext.canDeleteTasks;
@@ -1137,6 +1207,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         onUploadFile: uploadProjectFile,
                         onOpenFile: openProjectFile,
                         onDeleteFile: deleteProjectFile,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ProjectNotesCard(
+                        notes: projectNotes,
+                        enabled: !isSaving,
+                        canAddNote: canAddProjectNotes,
+                        canDeleteNote: canDeleteProjectNotes,
+                        currentUserId: widget.companyContext.userId,
+                        onAddNote: addProjectNote,
+                        onDeleteNote: deleteProjectNote,
                       ),
                     ),
                   ),
