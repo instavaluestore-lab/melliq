@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../company/models/company_context.dart';
 import '../models/project.dart';
+import '../models/project_activity_log.dart';
 import '../models/project_file.dart';
 import '../models/material_item.dart';
 import '../models/project_stage_cost.dart';
@@ -10,6 +11,7 @@ import '../models/project_stage_cost_item.dart';
 import '../models/project_task.dart';
 import '../models/project_task_assignee.dart';
 import '../services/project_service.dart';
+import '../services/project_activity_log_service.dart';
 import '../services/project_file_service.dart';
 import '../services/material_service.dart';
 import '../services/project_stage_cost_service.dart';
@@ -17,6 +19,7 @@ import '../services/project_stage_cost_item_service.dart';
 import '../services/project_task_service.dart';
 import '../widgets/project_tasks_card.dart';
 import '../widgets/project_files_card.dart';
+import '../widgets/project_activity_card.dart';
 import '../widgets/project_materials_card.dart';
 import '../widgets/project_notes_card.dart';
 import '../models/project_note.dart';
@@ -44,6 +47,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   late final ProjectStageCostItemService stageCostItemService;
   late final ProjectTaskService projectTaskService;
   late final ProjectNoteService projectNoteService;
+  late final ProjectActivityLogService projectActivityLogService;
 
   final contractAmountController = TextEditingController();
 
@@ -59,6 +63,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectFile> projectFiles = [];
   List<MaterialItem> projectMaterials = [];
   List<ProjectNote> projectNotes = [];
+  List<ProjectActivityLog> projectActivityLogs = [];
   List<ProjectTaskAssignee> projectTaskAssignees = [];
 
   final Map<String, TextEditingController> itemDescriptionControllers = {};
@@ -106,6 +111,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
     projectTaskService = ProjectTaskService(Supabase.instance.client);
     projectNoteService = ProjectNoteService(Supabase.instance.client);
+    projectActivityLogService =
+        ProjectActivityLogService(Supabase.instance.client);
 
     loadProjectDetail();
   }
@@ -169,6 +176,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           projectId: project.id,
         );
 
+        final freshProjectActivityLogs =
+            await projectActivityLogService.getProjectActivityLogs(
+          projectId: project.id,
+        );
+
       _syncControllers(freshProject, freshStageCosts, freshStageCostItems);
 
       if (!mounted) return;
@@ -181,6 +193,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           projectTasks = freshProjectTasks;
           projectFiles = freshProjectFiles;
           projectMaterials = freshProjectMaterials;
+          projectActivityLogs = freshProjectActivityLogs;
         isLoading = false;
       });
     } catch (error) {
@@ -501,6 +514,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         status: selectedStatus,
       );
 
+      if (project.status != selectedStatus) {
+        await createProjectActivityLog(
+          activityType: 'status_changed',
+          title:
+              'Project status changed from ${_statusLabel(project.status)} to ${_statusLabel(selectedStatus)}',
+        );
+      }
+
+      await createProjectActivityLog(
+        activityType: 'project_updated',
+        title: 'Project financials and stage costs were updated.',
+      );
+
       await stageCostService.updateProjectFinancialTotals(
         projectId: project.id,
         contractAmount: savedContractAmount,
@@ -527,6 +553,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> saveProjectStatusOnly() async {
     final currentProject = project;
+    final previousStatus = currentProject.status;
 
     setState(() {
       isSaving = true;
@@ -538,6 +565,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: currentProject.id,
         status: selectedStatus,
       );
+
+      if (previousStatus != selectedStatus) {
+        await createProjectActivityLog(
+          activityType: 'status_changed',
+          title:
+              'Project status changed from ${_statusLabel(previousStatus)} to ${_statusLabel(selectedStatus)}',
+        );
+      }
 
       await loadProjectDetail();
 
@@ -671,6 +706,68 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     return (actualProfit / contractAmount) * 100;
   }
 
+  String _statusLabel(String status) {
+    return switch (status) {
+      'contract' => 'Contract',
+      'ordered_material' => 'Ordered Material',
+      'structure_fabrication' => 'Structure Fabrication',
+      'powder_coating' => 'Powder Coating',
+      'footers' => 'Footers',
+      'sail_fabrication' => 'Sail Fabrication',
+      'installation' => 'Installation',
+      'final_invoice' => 'Final Invoice',
+      'completed' => 'Completed',
+      _ => status
+          .replaceAll('_', ' ')
+          .split(' ')
+          .where((word) => word.isNotEmpty)
+          .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+          .join(' '),
+    };
+  }
+
+  String _materialStatusLabel(String status) {
+    return switch (status) {
+      'needed' => 'Needed',
+      'ordered' => 'Ordered',
+      'received' => 'Received',
+      'installed' => 'Installed',
+      _ => status
+          .replaceAll('_', ' ')
+          .split(' ')
+          .where((word) => word.isNotEmpty)
+          .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+          .join(' '),
+    };
+  }
+
+  Future<ProjectActivityLog?> createProjectActivityLog({
+    required String activityType,
+    required String title,
+    String? body,
+  }) async {
+    try {
+      final activityLog =
+          await projectActivityLogService.createProjectActivityLog(
+        companyId: widget.companyContext.companyId,
+        projectId: project.id,
+        activityType: activityType,
+        title: title,
+        body: body,
+      );
+
+      if (!mounted) return activityLog;
+
+      setState(() {
+        projectActivityLogs = [activityLog, ...projectActivityLogs];
+      });
+
+      return activityLog;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> addProjectTask() async {
     final createdTask = await showDialog<ProjectTask>(
       context: context,
@@ -703,6 +800,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     setState(() {
       projectTasks = [...projectTasks, createdTask];
     });
+
+    await createProjectActivityLog(
+      activityType: 'task_created',
+      title: 'Task added: ${createdTask.title}',
+      body: createdTask.description,
+    );
   }
 
   Future<void> toggleProjectTask(ProjectTask task) async {
@@ -719,6 +822,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 existingTask.id == updatedTask.id ? updatedTask : existingTask)
             .toList();
       });
+
+      await createProjectActivityLog(
+        activityType: updatedTask.isDone ? 'task_completed' : 'task_reopened',
+        title: updatedTask.isDone
+            ? 'Task completed: ${updatedTask.title}'
+            : 'Task reopened: ${updatedTask.title}',
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -739,6 +849,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             .where((existingTask) => existingTask.id != task.id)
             .toList();
       });
+
+      await createProjectActivityLog(
+        activityType: 'task_deleted',
+        title: 'Task deleted: ${task.title}',
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -774,6 +889,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               unitCost: unitCost,
               supplier: supplier,
               status: status,
+            );
+
+            await createProjectActivityLog(
+              activityType: 'material_created',
+              title: 'Material added: $name',
+              body:
+                  'Quantity: $quantity $unit • Category: $category • Status: ${_materialStatusLabel(status)}',
             );
           },
         );
@@ -852,6 +974,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         status: status,
       );
 
+      await createProjectActivityLog(
+        activityType: 'material_status_changed',
+        title: 'Material status changed: ${material.name}',
+        body:
+            '${_materialStatusLabel(material.status)} → ${_materialStatusLabel(status)}',
+      );
+
       if (!mounted) return;
 
       await loadProjectDetail();
@@ -860,6 +989,33 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
       setState(() {
         errorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> deleteProjectActivityLog(ProjectActivityLog activityLog) async {
+    setState(() {
+      isSaving = true;
+      errorMessage = null;
+    });
+
+    try {
+      await projectActivityLogService.deleteProjectActivityLog(activityLog.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        projectActivityLogs = projectActivityLogs
+            .where((log) => log.id != activityLog.id)
+            .toList();
+        isSaving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isSaving = false;
       });
     }
   }
@@ -878,6 +1034,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: currentProject.id,
         noteType: noteType,
         body: body,
+      );
+
+      await createProjectActivityLog(
+        activityType: 'note_created',
+        title: 'Note added: ${note.noteTypeLabel}',
+        body: note.body,
       );
 
       if (!mounted) return;
@@ -904,6 +1066,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     try {
       await projectNoteService.deleteProjectNote(note.id);
+
+      await createProjectActivityLog(
+        activityType: 'note_deleted',
+        title: 'Note deleted: ${note.noteTypeLabel}',
+      );
 
       if (!mounted) return;
 
@@ -947,6 +1114,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               mimeType: null,
               description: description,
             );
+
+            await createProjectActivityLog(
+              activityType: 'file_uploaded',
+              title: 'File uploaded: ${pickedFile.name}',
+              body: description,
+            );
           },
         );
       },
@@ -973,6 +1146,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   Future<void> deleteProjectFile(ProjectFile file) async {
     try {
       await projectFileService.deleteProjectFile(file);
+
+      await createProjectActivityLog(
+        activityType: 'file_deleted',
+        title: 'File deleted: ${file.fileName}',
+      );
 
       if (!mounted) return;
 
@@ -1004,6 +1182,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canDeleteProjectFiles = widget.companyContext.canDeleteProjectFiles;
     final canAddProjectNotes = !widget.companyContext.canViewOnly;
     final canDeleteProjectNotes =
+        widget.companyContext.isPrimaryAdmin ||
+        widget.companyContext.isCfo ||
+        widget.companyContext.isAdmin ||
+        widget.companyContext.isManager;
+    final canDeleteProjectActivityLogs =
         widget.companyContext.isPrimaryAdmin ||
         widget.companyContext.isCfo ||
         widget.companyContext.isAdmin ||
@@ -1221,6 +1404,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         currentUserId: widget.companyContext.userId,
                         onAddNote: addProjectNote,
                         onDeleteNote: deleteProjectNote,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ProjectActivityCard(
+                        activityLogs: projectActivityLogs,
+                        enabled: !isSaving,
+                        canDeleteActivity: canDeleteProjectActivityLogs,
+                        onDeleteActivity: deleteProjectActivityLog,
                       ),
                     ),
                   ),
