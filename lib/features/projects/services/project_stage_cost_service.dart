@@ -72,22 +72,35 @@ class ProjectStageCostService {
     required String projectId,
     required String createdBy,
   }) async {
-    await _supabase.from('project_stage_costs').upsert(
-      defaultStages
-          .map(
-            (stage) => {
-              'company_id': companyId,
-              'project_id': projectId,
-              'stage': stage,
-              'line_type': 'stage',
-              'estimated_cost': 0,
-              'actual_cost': 0,
-              'created_by': createdBy,
-            },
-          )
-          .toList(),
-      onConflict: 'project_id,stage',
-    );
+    final existingStages = await _supabase
+        .from('project_stage_costs')
+        .select('stage')
+        .eq('company_id', companyId)
+        .eq('project_id', projectId)
+        .eq('line_type', 'stage');
+
+    final existingStageNames = existingStages
+        .map<String>((row) => row['stage'] as String)
+        .toSet();
+
+    final missingStages = defaultStages
+        .where((stage) => !existingStageNames.contains(stage))
+        .map(
+          (stage) => {
+            'company_id': companyId,
+            'project_id': projectId,
+            'stage': stage,
+            'line_type': 'stage',
+            'estimated_cost': 0,
+            'actual_cost': 0,
+            'created_by': createdBy,
+          },
+        )
+        .toList();
+
+    if (missingStages.isNotEmpty) {
+      await _supabase.from('project_stage_costs').insert(missingStages);
+    }
 
     await createMiscellaneousExpense(
       companyId: companyId,

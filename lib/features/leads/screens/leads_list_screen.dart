@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/widgets/page_navigation_buttons.dart';
 import '../../company/models/company_context.dart';
+import '../../customers/services/customer_service.dart';
+import '../../projects/services/project_service.dart';
 import '../models/lead.dart';
 import '../services/lead_service.dart';
 import 'lead_form_screen.dart';
@@ -21,6 +23,8 @@ class LeadsListScreen extends StatefulWidget {
 
 class _LeadsListScreenState extends State<LeadsListScreen> {
   late final LeadService leadService;
+  late final CustomerService customerService;
+  late final ProjectService projectService;
   final searchController = TextEditingController();
 
   bool isLoading = true;
@@ -39,6 +43,8 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
   void initState() {
     super.initState();
     leadService = LeadService(Supabase.instance.client);
+    customerService = CustomerService(Supabase.instance.client);
+    projectService = ProjectService(Supabase.instance.client);
     loadLeads();
   }
 
@@ -153,6 +159,182 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
         errorMessage = error.toString();
       });
     }
+  }
+
+  Future<void> convertLead(Lead lead) async {
+    if (!canManageLeads) return;
+
+    final createProject = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Convert Lead'),
+          content: Text(
+            'Create a customer from "${lead.title}" and optionally create a project record.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Customer Only'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Customer + Project'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (createProject == null) return;
+
+    setState(() {
+      errorMessage = null;
+    });
+
+    try {
+      final firstName = _firstNameFromContact(lead);
+      final lastName = _lastNameFromContact(lead);
+      final companyName = firstName.isEmpty && lastName.isEmpty ? lead.title : '';
+
+      final createdCustomer = await customerService.createCustomer(
+        companyId: widget.companyContext.companyId,
+        createdBy: widget.companyContext.userId,
+        firstName: firstName,
+        lastName: lastName,
+        companyName: companyName,
+        email: lead.contactEmail ?? '',
+        phone: lead.contactPhone ?? '',
+        city: lead.city ?? '',
+        state: lead.state ?? '',
+        customerType: 'residential',
+        notes: _conversionCustomerNotes(lead),
+      );
+
+      if (createProject) {
+        final projectNumber = await projectService.getNextProjectNumber(
+          companyId: widget.companyContext.companyId,
+        );
+
+        await projectService.createProjectForCustomer(
+          companyId: widget.companyContext.companyId,
+          customerId: createdCustomer.id,
+          createdBy: widget.companyContext.userId,
+          projectName: lead.title,
+          projectNumber: projectNumber,
+          addressLine1: lead.addressLine1 ?? '',
+          addressLine2: lead.addressLine2 ?? '',
+          city: lead.city ?? '',
+          state: lead.state ?? '',
+          postalCode: lead.postalCode ?? '',
+          country: lead.country.isEmpty ? 'USA' : lead.country,
+          status: 'contract',
+          priority: lead.estimatedValue >= 50000 ? 'high' : 'normal',
+          notes: _conversionProjectNotes(lead),
+        );
+      }
+
+      await leadService.updateLead(
+        id: lead.id,
+        title: lead.title,
+        source: lead.source,
+        status: 'won',
+        estimatedValue: lead.estimatedValue,
+        contactName: lead.contactName,
+        contactEmail: lead.contactEmail,
+        contactPhone: lead.contactPhone,
+        addressLine1: lead.addressLine1,
+        addressLine2: lead.addressLine2,
+        city: lead.city,
+        state: lead.state,
+        postalCode: lead.postalCode,
+        country: lead.country,
+        notes: _convertedLeadNotes(lead, createProject: createProject),
+      );
+
+      await loadLeads();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            createProject
+                ? 'Lead converted to customer and project.'
+                : 'Lead converted to customer.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+  }
+
+  String _firstNameFromContact(Lead lead) {
+    final contactName = lead.contactName?.trim() ?? '';
+    if (contactName.isEmpty) return '';
+
+    final parts = contactName.split(RegExp(r'\s+'));
+    if (parts.length <= 1) return contactName;
+
+    return parts.first;
+  }
+
+  String _lastNameFromContact(Lead lead) {
+    final contactName = lead.contactName?.trim() ?? '';
+    if (contactName.isEmpty) return '';
+
+    final parts = contactName.split(RegExp(r'\s+'));
+    if (parts.length <= 1) return '';
+
+    return parts.skip(1).join(' ');
+  }
+
+  String _conversionCustomerNotes(Lead lead) {
+    final existingNotes = lead.notes?.trim() ?? '';
+
+    return [
+      'Created from lead: ${lead.title}',
+      'Lead source: ${lead.sourceLabel}',
+      if (lead.estimatedValue > 0)
+        'Estimated lead value: ${_formatMoney(lead.estimatedValue)}',
+      if (existingNotes.isNotEmpty) '',
+      if (existingNotes.isNotEmpty) existingNotes,
+    ].join('\n');
+  }
+
+  String _conversionProjectNotes(Lead lead) {
+    final existingNotes = lead.notes?.trim() ?? '';
+
+    return [
+      'Project created from lead: ${lead.title}',
+      'Lead source: ${lead.sourceLabel}',
+      if (lead.estimatedValue > 0)
+        'Estimated lead value: ${_formatMoney(lead.estimatedValue)}',
+      if (existingNotes.isNotEmpty) '',
+      if (existingNotes.isNotEmpty) existingNotes,
+    ].join('\n');
+  }
+
+  String _convertedLeadNotes(Lead lead, {required bool createProject}) {
+    final existingNotes = lead.notes?.trim() ?? '';
+    final conversionLine = createProject
+        ? 'Converted to customer and project.'
+        : 'Converted to customer.';
+
+    return [
+      if (existingNotes.isNotEmpty) existingNotes,
+      if (existingNotes.isNotEmpty) '',
+      '${DateTime.now().toLocal()}: $conversionLine',
+    ].join('\n');
   }
 
   @override
@@ -292,6 +474,9 @@ class _LeadsListScreenState extends State<LeadsListScreen> {
                           canManage: canManageLeads,
                           onOpen: () => openLeadForm(lead: lead),
                           onArchive: () => archiveLead(lead),
+                          onConvert: lead.status == 'won'
+                              ? () => convertLead(lead)
+                              : null,
                           formatMoney: _formatMoney,
                         ),
                       ),
@@ -312,6 +497,7 @@ class _LeadCard extends StatelessWidget {
     required this.canManage,
     required this.onOpen,
     required this.onArchive,
+    required this.onConvert,
     required this.formatMoney,
   });
 
@@ -319,6 +505,7 @@ class _LeadCard extends StatelessWidget {
   final bool canManage;
   final VoidCallback onOpen;
   final VoidCallback onArchive;
+  final VoidCallback? onConvert;
   final String Function(double value) formatMoney;
 
   @override
@@ -406,6 +593,12 @@ class _LeadCard extends StatelessWidget {
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Edit'),
                   ),
+                  if (onConvert != null)
+                    FilledButton.icon(
+                      onPressed: onConvert,
+                      icon: const Icon(Icons.call_split_outlined),
+                      label: const Text('Convert'),
+                    ),
                   OutlinedButton.icon(
                     onPressed: onArchive,
                     icon: const Icon(Icons.archive_outlined),

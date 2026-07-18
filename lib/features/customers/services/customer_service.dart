@@ -58,7 +58,7 @@ class CustomerService {
     return Customer.fromMap(response);
   }
 
-  Future<void> createCustomer({
+  Future<Customer> createCustomer({
     required String companyId,
     required String createdBy,
     required String firstName,
@@ -71,20 +71,39 @@ class CustomerService {
     required String customerType,
     required String notes,
   }) async {
-    await _supabase.from('customers').insert({
-      'company_id': companyId,
-      'created_by': createdBy,
-      'first_name': _emptyToNull(firstName),
-      'last_name': _emptyToNull(lastName),
-      'company_name': _emptyToNull(companyName),
-      'email': _emptyToNull(email),
-      'phone': _emptyToNull(phone),
-      'city': _emptyToNull(city),
-      'state': _emptyToNull(state),
-      'customer_type': customerType,
-      'status': 'active',
-      'notes': _emptyToNull(notes),
-    });
+    final response = await _supabase
+        .from('customers')
+        .insert({
+          'company_id': companyId,
+          'created_by': createdBy,
+          'first_name': _emptyToNull(firstName),
+          'last_name': _emptyToNull(lastName),
+          'company_name': _emptyToNull(companyName),
+          'email': _emptyToNull(email),
+          'phone': _emptyToNull(phone),
+          'city': _emptyToNull(city),
+          'state': _emptyToNull(state),
+          'customer_type': customerType,
+          'status': 'active',
+          'notes': _emptyToNull(notes),
+        })
+        .select('''
+          id,
+          company_id,
+          first_name,
+          last_name,
+          company_name,
+          email,
+          phone,
+          city,
+          state,
+          customer_type,
+          status,
+          notes
+        ''')
+        .single();
+
+    return Customer.fromMap(response);
   }
 
   Future<void> updateCustomer({
