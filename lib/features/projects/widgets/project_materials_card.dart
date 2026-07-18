@@ -7,9 +7,12 @@ class ProjectMaterialsCard extends StatelessWidget {
     super.key,
     required this.materials,
     required this.enabled,
-    required this.canManageMaterials,
+    required this.canCreateMaterials,
+    required this.canEditMaterials,
     required this.canDeleteMaterials,
     required this.canUpdateStatus,
+    required this.canViewMaterialCosts,
+    required this.canEditMaterialCosts,
     required this.onAddMaterial,
     required this.onEditMaterial,
     required this.onDeleteMaterial,
@@ -18,9 +21,12 @@ class ProjectMaterialsCard extends StatelessWidget {
 
   final List<MaterialItem> materials;
   final bool enabled;
-  final bool canManageMaterials;
+  final bool canCreateMaterials;
+  final bool canEditMaterials;
   final bool canDeleteMaterials;
   final bool canUpdateStatus;
+  final bool canViewMaterialCosts;
+  final bool canEditMaterialCosts;
   final VoidCallback onAddMaterial;
   final ValueChanged<MaterialItem> onEditMaterial;
   final ValueChanged<MaterialItem> onDeleteMaterial;
@@ -74,10 +80,11 @@ class ProjectMaterialsCard extends StatelessWidget {
                   label: 'Items',
                   value: materials.length.toString(),
                 ),
-                _MaterialMetricPill(
-                  label: 'Total',
-                  value: '\$${totalCost.toStringAsFixed(2)}',
-                ),
+                if (canViewMaterialCosts)
+                  _MaterialMetricPill(
+                    label: 'Total',
+                    value: '\$${totalCost.toStringAsFixed(2)}',
+                  ),
                 _MaterialMetricPill(
                   label: 'Ordered',
                   value: orderedCount.toString(),
@@ -96,7 +103,7 @@ class ProjectMaterialsCard extends StatelessWidget {
             SizedBox(
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: enabled && canManageMaterials ? onAddMaterial : null,
+                onPressed: enabled && canCreateMaterials ? onAddMaterial : null,
                 icon: const Icon(Icons.add_box_outlined),
                 label: const Text('Add Material'),
               ),
@@ -123,9 +130,10 @@ class ProjectMaterialsCard extends StatelessWidget {
                     onUpdateStatus: (status) {
                       onUpdateMaterialStatus(material, status);
                     },
-                    canEditMaterial: canManageMaterials,
+                    canEditMaterial: canEditMaterials,
                     canDeleteMaterial: canDeleteMaterials,
                     canUpdateStatus: canUpdateStatus,
+                    canViewMaterialCosts: canViewMaterialCosts,
                   ),
                 ),
               ),
@@ -140,10 +148,14 @@ class MaterialDialog extends StatefulWidget {
   const MaterialDialog({
     super.key,
     this.material,
+    required this.canViewCosts,
+    required this.canEditCosts,
     required this.onSave,
   });
 
   final MaterialItem? material;
+  final bool canViewCosts;
+  final bool canEditCosts;
   final Future<void> Function({
     required String name,
     required String category,
@@ -203,7 +215,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
   Future<void> save() async {
     final name = nameController.text.trim();
     final quantity = double.tryParse(quantityController.text.trim()) ?? 0;
-    final unitCost = double.tryParse(unitCostController.text.trim()) ?? 0;
+    final unitCost = widget.canEditCosts
+        ? double.tryParse(unitCostController.text.trim()) ?? 0
+        : widget.material?.unitCost ?? 0;
 
     if (name.isEmpty) {
       setState(() {
@@ -312,24 +326,26 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: unitCostController,
-                enabled: !isSaving,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              if (widget.canViewCosts) ...[
+                TextField(
+                  controller: unitCostController,
+                  enabled: !isSaving && widget.canEditCosts,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Unit cost',
+                    prefixText: '\$',
+                  ),
+                  onChanged: (_) => setState(() {}),
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Unit cost',
-                  prefixText: '\$',
+                const SizedBox(height: 12),
+                _CalculatedMaterialTotal(
+                  quantityText: quantityController.text,
+                  unitCostText: unitCostController.text,
                 ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              _CalculatedMaterialTotal(
-                quantityText: quantityController.text,
-                unitCostText: unitCostController.text,
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               TextField(
                 controller: supplierController,
                 enabled: !isSaving,
@@ -465,6 +481,7 @@ class _MaterialTile extends StatelessWidget {
     required this.canEditMaterial,
     required this.canDeleteMaterial,
     required this.canUpdateStatus,
+    required this.canViewMaterialCosts,
     required this.onEdit,
     required this.onDelete,
     required this.onUpdateStatus,
@@ -475,6 +492,7 @@ class _MaterialTile extends StatelessWidget {
   final bool canEditMaterial;
   final bool canDeleteMaterial;
   final bool canUpdateStatus;
+  final bool canViewMaterialCosts;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<String> onUpdateStatus;
@@ -523,7 +541,9 @@ class _MaterialTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '${material.categoryLabel} • ${material.quantityLabel} • ${material.unitCostLabel}',
+                  canViewMaterialCosts
+                      ? '${material.categoryLabel} • ${material.quantityLabel} • ${material.unitCostLabel}'
+                      : '${material.categoryLabel} • ${material.quantityLabel}',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 12,
@@ -551,11 +571,12 @@ class _MaterialTile extends StatelessWidget {
                       textColor: statusColor,
                       backgroundColor: statusBackground,
                     ),
-                    _MaterialChip(
-                      label: material.totalCostLabel,
-                      textColor: const Color(0xFF0F172A),
-                      backgroundColor: const Color(0xFFF8FAFC),
-                    ),
+                    if (canViewMaterialCosts)
+                      _MaterialChip(
+                        label: material.totalCostLabel,
+                        textColor: const Color(0xFF0F172A),
+                        backgroundColor: const Color(0xFFF8FAFC),
+                      ),
                   ],
                 ),
               ],

@@ -127,7 +127,7 @@ class CompanyContext {
   }
 
   bool get canCreateTasks {
-    return isPrimaryAdmin || isCfo || isAdmin || isManager;
+    return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }
 
   bool get canAssignTasks {
@@ -147,7 +147,7 @@ class CompanyContext {
   }
 
   bool get canCreateMaterials {
-    return isPrimaryAdmin || isCfo || isAdmin || isManager;
+    return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }
 
   bool get canEditMaterials {

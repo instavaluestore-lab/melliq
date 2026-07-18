@@ -709,6 +709,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       context: context,
       builder: (context) {
         return MaterialDialog(
+          canViewCosts: widget.companyContext.canViewFinancials,
+          canEditCosts: widget.companyContext.canManageProjectFinancials,
           onSave: ({
             required name,
             required category,
@@ -745,6 +747,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       builder: (context) {
         return MaterialDialog(
           material: material,
+          canViewCosts: widget.companyContext.canViewFinancials,
+          canEditCosts: widget.companyContext.canManageProjectFinancials,
           onSave: ({
             required name,
             required category,
@@ -889,7 +893,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canViewProjectFinancials = widget.companyContext.canViewFinancials;
     final canManageProjectFinancials =
         widget.companyContext.canManageProjectFinancials;
-    final canManageMaterials = widget.companyContext.canEditMaterials;
+    final canCreateMaterials = widget.companyContext.canCreateMaterials;
+    final canEditMaterials = widget.companyContext.canEditMaterials;
     final canDeleteMaterials = widget.companyContext.canDeleteMaterials;
     final canUpdateMaterialStatus =
         widget.companyContext.canUpdateMaterialStatus;
@@ -1046,9 +1051,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       child: ProjectMaterialsCard(
                         materials: projectMaterials,
                         enabled: !isSaving,
-                        canManageMaterials: canManageMaterials,
+                        canCreateMaterials: canCreateMaterials,
+                        canEditMaterials: canEditMaterials,
                         canDeleteMaterials: canDeleteMaterials,
                         canUpdateStatus: canUpdateMaterialStatus,
+                        canViewMaterialCosts: canViewProjectFinancials,
+                        canEditMaterialCosts: canManageProjectFinancials,
                         onAddMaterial: addProjectMaterial,
                         onEditMaterial: editProjectMaterial,
                         onDeleteMaterial: deleteProjectMaterial,
