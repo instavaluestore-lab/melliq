@@ -1,4 +1,4 @@
--- MellIQ Supabase migration
+-- LupinusBuild Supabase migration
 -- Date: 2026-07-18
 -- Purpose:
 -- Add project_activity_logs for project operational history:

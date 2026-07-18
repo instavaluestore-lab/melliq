@@ -156,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'MellIQ Dashboard',
+          'LupinusBuild Dashboard',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [

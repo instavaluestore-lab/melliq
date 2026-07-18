@@ -122,14 +122,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(26),
                         child: Image.asset(
-                          'assets/branding/melliq-logo.png',
+                          'assets/branding/lupinusbuild-logo.png',
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   const SizedBox(height: 22),
                   const Text(
-                    'MellIQ',
+                    'LupinusBuild',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,

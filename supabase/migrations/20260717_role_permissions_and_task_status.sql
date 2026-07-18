@@ -1,4 +1,4 @@
--- MellIQ Supabase migration notes
+-- LupinusBuild Supabase migration notes
 -- Date: 2026-07-17
 -- Purpose:
 -- 1. Allow Field Users to perform operational project work without financial access.

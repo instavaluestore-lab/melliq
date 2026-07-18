@@ -2386,7 +2386,7 @@ class _StageCostRow extends StatelessWidget {
   }
 
 
-  Color get _melliqStageShellColor {
+  Color get _lupinusStageShellColor {
     switch (stageCost.stage) {
       case 'ordered_material':
         return const Color(0xFFFFEDD5); // orange shell
@@ -2409,7 +2409,7 @@ class _StageCostRow extends StatelessWidget {
     }
   }
 
-  Color get _melliqStageHeaderColor {
+  Color get _lupinusStageHeaderColor {
     switch (stageCost.stage) {
       case 'ordered_material':
         return const Color(0xFFC2410C);
@@ -2432,7 +2432,7 @@ class _StageCostRow extends StatelessWidget {
     }
   }
 
-  String get _melliqStageTitle {
+  String get _lupinusStageTitle {
     if (stageCost.isMiscellaneous) {
       return 'MISCELLANEOUS EXPENSE';
     }
@@ -2450,20 +2450,20 @@ class _StageCostRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _melliqStageShellColor,
+        color: _lupinusStageShellColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            // _MELLIQ_STAGE_VISUAL_HEADER
+            // _LUPINUS_STAGE_VISUAL_HEADER
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: _melliqStageHeaderColor,
+                color: _lupinusStageHeaderColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
                   BoxShadow(
@@ -2474,7 +2474,7 @@ class _StageCostRow extends StatelessWidget {
                 ],
               ),
               child: Text(
-                _melliqStageTitle,
+                _lupinusStageTitle,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
