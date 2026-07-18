@@ -95,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canViewExpenses = companyContext?.canViewExpenses == true;
+    final canViewFinancials = companyContext?.canViewFinancials == true;
     final metrics = projectMetrics;
 
     final stats = [
@@ -116,29 +116,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardStat(
         title: 'Open Project Value',
-        value: _formatMoney(metrics?.openProjectTotalValue ?? 0),
-        subtitle: 'Total contract value open',
+        value: canViewFinancials
+            ? _formatMoney(metrics?.openProjectTotalValue ?? 0)
+            : 'Hidden',
+        subtitle: canViewFinancials
+            ? 'Total contract value open'
+            : 'Restricted by role',
       ),
       _DashboardStat(
         title: 'Project Expenses',
-        value: canViewExpenses
+        value: canViewFinancials
             ? _formatMoney(metrics?.projectExpenses ?? 0)
             : 'Hidden',
-        subtitle: canViewExpenses ? 'Actual costs recorded' : 'Restricted by role',
+        subtitle: canViewFinancials ? 'Actual costs recorded' : 'Restricted by role',
       ),
       _DashboardStat(
         title: 'Open Project Profit',
-        value: canViewExpenses
+        value: canViewFinancials
             ? _formatMoney(metrics?.totalOpenProjectProfit ?? 0)
             : 'Hidden',
-        subtitle: canViewExpenses ? 'Open actual profit' : 'Restricted by role',
+        subtitle: canViewFinancials ? 'Open actual profit' : 'Restricted by role',
       ),
       _DashboardStat(
         title: 'Annual Project Profit',
-        value: canViewExpenses
+        value: canViewFinancials
             ? _formatMoney(metrics?.totalAnnualProjectProfit ?? 0)
             : 'Hidden',
-        subtitle: canViewExpenses ? 'This calendar year' : 'Restricted by role',
+        subtitle: canViewFinancials ? 'This calendar year' : 'Restricted by role',
       ),
     ];
 
@@ -311,11 +315,11 @@ class _CompanyContextCard extends StatelessWidget {
             ),
             _ContextChip(
               label: 'Role',
-              value: companyContext.role,
+              value: companyContext.roleLabel,
             ),
             _ContextChip(
               label: 'Expense Access',
-              value: companyContext.canViewExpenses ? 'Allowed' : 'Hidden',
+              value: companyContext.canViewFinancials ? 'Allowed' : 'Hidden',
             ),
           ],
         ),

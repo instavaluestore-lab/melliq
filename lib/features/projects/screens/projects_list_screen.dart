@@ -126,7 +126,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
   @override
   Widget build(BuildContext context) {
     final visibleProjects = filteredProjects;
-    final canViewExpenses = widget.companyContext.canViewExpenses;
+    final canViewFinancials = widget.companyContext.canViewFinancials;
 
     return Scaffold(
       appBar: AppBar(
@@ -168,7 +168,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
                     totalProjects: projects.length,
                     openProjectValue: openProjectValue,
                     openProjectProfit: openProjectProfit,
-                    canViewExpenses: canViewExpenses,
+                    canViewFinancials: canViewFinancials,
                     formatMoney: _formatMoney,
                   ),
                   const SizedBox(height: 18),
@@ -211,7 +211,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
                     ...visibleProjects.map(
                       (project) => _ProjectListCard(
                         project: project,
-                        canViewExpenses: canViewExpenses,
+                        canViewFinancials: canViewFinancials,
                         formatMoney: _formatMoney,
                         onTap: () => openProject(project),
                       ),
@@ -232,7 +232,7 @@ class _ProjectsSummaryStrip extends StatelessWidget {
     required this.totalProjects,
     required this.openProjectValue,
     required this.openProjectProfit,
-    required this.canViewExpenses,
+    required this.canViewFinancials,
     required this.formatMoney,
   });
 
@@ -240,7 +240,7 @@ class _ProjectsSummaryStrip extends StatelessWidget {
   final int totalProjects;
   final double openProjectValue;
   final double openProjectProfit;
-  final bool canViewExpenses;
+  final bool canViewFinancials;
   final String Function(double value) formatMoney;
 
   @override
@@ -263,13 +263,13 @@ class _ProjectsSummaryStrip extends StatelessWidget {
         ),
         _SummaryPill(
           title: 'Open Value',
-          value: formatMoney(openProjectValue),
+          value: canViewFinancials ? formatMoney(openProjectValue) : 'Hidden',
           color: const Color(0xFF15803D),
           backgroundColor: const Color(0xFFF0FDF4),
         ),
         _SummaryPill(
           title: 'Open Profit',
-          value: canViewExpenses ? formatMoney(openProjectProfit) : 'Hidden',
+          value: canViewFinancials ? formatMoney(openProjectProfit) : 'Hidden',
           color: const Color(0xFFC2410C),
           backgroundColor: const Color(0xFFFFF7ED),
         ),
@@ -417,13 +417,13 @@ class _SearchAndFilterCard extends StatelessWidget {
 class _ProjectListCard extends StatelessWidget {
   const _ProjectListCard({
     required this.project,
-    required this.canViewExpenses,
+    required this.canViewFinancials,
     required this.formatMoney,
     required this.onTap,
   });
 
   final Project project;
-  final bool canViewExpenses;
+  final bool canViewFinancials;
   final String Function(double value) formatMoney;
   final VoidCallback onTap;
 
@@ -578,17 +578,17 @@ class _ProjectListCard extends StatelessWidget {
                           children: [
                             _MoneyBucket(
                               label: 'Contract',
-                              value: formatMoney(project.contractAmount),
+                              value: canViewFinancials ? formatMoney(project.contractAmount) : 'Hidden',
                             ),
                             _MoneyBucket(
                               label: 'Cost',
-                              value: canViewExpenses
+                              value: canViewFinancials
                                   ? formatMoney(project.actualCost)
                                   : 'Hidden',
                             ),
                             _MoneyBucket(
                               label: 'Profit',
-                              value: canViewExpenses
+                              value: canViewFinancials
                                   ? formatMoney(project.actualProfit)
                                   : 'Hidden',
                             ),
