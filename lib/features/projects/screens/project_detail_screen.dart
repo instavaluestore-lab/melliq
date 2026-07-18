@@ -519,6 +519,44 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> saveProjectStatusOnly() async {
+    final currentProject = project;
+
+    setState(() {
+      isSaving = true;
+      errorMessage = null;
+    });
+
+    try {
+      await projectService.updateProjectStatus(
+        projectId: currentProject.id,
+        status: selectedStatus,
+      );
+
+      await loadProjectDetail();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Project status updated.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      isSaving = false;
+    });
+  }
+
   double _calculateEstimatedCost(ProjectStageCost stageCost) {
     if (stageCost.isMilestoneOnly) {
       return 0;
@@ -902,6 +940,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canDeleteProjectFiles = widget.companyContext.canDeleteProjectFiles;
     final canCreateTasks = widget.companyContext.canCreateTasks;
     final canCompleteTasks = widget.companyContext.canCompleteTasks;
+    final canUpdateProjectStatus =
+        widget.companyContext.canUpdateProjectStatus;
 
     final content = isLoading
         ? const [
@@ -928,6 +968,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     child: _ProjectTitleBlock(project: project),
                   ),
                 ),
+                if (!canViewProjectFinancials)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: _ProjectProgressStatusCard(
+                        selectedStatus: selectedStatus,
+                        enabled: !isSaving && canUpdateProjectStatus,
+                        isSaving: isSaving,
+                        onStatusChanged: (value) {
+                          if (value == null) return;
+
+                          setState(() {
+                            selectedStatus = value;
+                          });
+                        },
+                        onSave: canUpdateProjectStatus
+                            ? saveProjectStatusOnly
+                            : null,
+                      ),
+                    ),
+                  ),
                   if (canViewProjectFinancials &&
                       MediaQuery.of(context).size.shortestSide < 1000)
                     SliverToBoxAdapter(
@@ -1247,6 +1308,218 @@ class _StickySummaryHeader extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _StickySummaryHeader oldDelegate) {
     return true;
+  }
+}
+
+class _ProjectProgressStatusCard extends StatelessWidget {
+  const _ProjectProgressStatusCard({
+    required this.selectedStatus,
+    required this.enabled,
+    required this.isSaving,
+    required this.onStatusChanged,
+    required this.onSave,
+  });
+
+  final String selectedStatus;
+  final bool enabled;
+  final bool isSaving;
+  final ValueChanged<String?>? onStatusChanged;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    const stageOrder = [
+      'contract',
+      'ordered_material',
+      'structure_fabrication',
+      'powder_coating',
+      'footers',
+      'sail_fabrication',
+      'installation',
+      'final_invoice',
+      'completed',
+    ];
+
+    const stageLabels = {
+      'contract': 'Contract',
+      'ordered_material': 'Ordered Material',
+      'structure_fabrication': 'Structure Fabrication',
+      'powder_coating': 'Powder Coating',
+      'footers': 'Footers',
+      'sail_fabrication': 'Sail Fabrication',
+      'installation': 'Installation',
+      'final_invoice': 'Final Invoice',
+      'completed': 'Completed',
+    };
+
+    final currentStageIndex = stageOrder.indexOf(selectedStatus);
+
+    return _CardShell(
+      title: 'Project Progress / Status Updates',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Update the project stage without changing pricing, costs, or financial totals.',
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: selectedStatus,
+            decoration: const InputDecoration(
+              labelText: 'Project status',
+            ),
+            items: const [
+              DropdownMenuItem(value: 'contract', child: Text('Contract')),
+              DropdownMenuItem(
+                value: 'ordered_material',
+                child: Text('Ordered Material'),
+              ),
+              DropdownMenuItem(
+                value: 'structure_fabrication',
+                child: Text('Structure Fabrication'),
+              ),
+              DropdownMenuItem(
+                value: 'powder_coating',
+                child: Text('Powder Coating'),
+              ),
+              DropdownMenuItem(value: 'footers', child: Text('Footers')),
+              DropdownMenuItem(
+                value: 'sail_fabrication',
+                child: Text('Sail Fabrication'),
+              ),
+              DropdownMenuItem(
+                value: 'installation',
+                child: Text('Installation'),
+              ),
+              DropdownMenuItem(
+                value: 'final_invoice',
+                child: Text('Final Invoice'),
+              ),
+              DropdownMenuItem(value: 'completed', child: Text('Completed')),
+            ],
+            onChanged: enabled ? onStatusChanged : null,
+          ),
+          const SizedBox(height: 16),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Project Stages',
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var index = 0; index < stageOrder.length; index++)
+                _ProjectStagePill(
+                  label: stageLabels[stageOrder[index]] ?? stageOrder[index],
+                  isCurrent: index == currentStageIndex,
+                  isPast: currentStageIndex >= 0 && index < currentStageIndex,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton(
+            onPressed: enabled ? onSave : null,
+            child: isSaving
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Save Status Update'),
+          ),
+          if (!enabled && onSave == null) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'Your role can view project status but cannot update it.',
+              style: TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectStagePill extends StatelessWidget {
+  const _ProjectStagePill({
+    required this.label,
+    required this.isCurrent,
+    required this.isPast,
+  });
+
+  final String label;
+  final bool isCurrent;
+  final bool isPast;
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = isCurrent
+        ? const Color(0xFFDBEAFE)
+        : isPast
+            ? const Color(0xFFECFDF5)
+            : const Color(0xFFF8FAFC);
+
+    final borderColor = isCurrent
+        ? const Color(0xFF2563EB)
+        : isPast
+            ? const Color(0xFF10B981)
+            : const Color(0xFFE2E8F0);
+
+    final textColor = isCurrent
+        ? const Color(0xFF1D4ED8)
+        : isPast
+            ? const Color(0xFF047857)
+            : const Color(0xFF64748B);
+
+    final icon = isCurrent
+        ? Icons.radio_button_checked
+        : isPast
+            ? Icons.check_circle_outline
+            : Icons.radio_button_unchecked;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: textColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

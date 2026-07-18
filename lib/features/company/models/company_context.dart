@@ -162,6 +162,10 @@ class CompanyContext {
     return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }
 
+  bool get canUpdateProjectStatus {
+    return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
+  }
+
   bool get canViewTeamList {
     return isPrimaryAdmin ||
         isCfo ||

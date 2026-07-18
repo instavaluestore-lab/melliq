@@ -515,6 +515,20 @@ class _MaterialTile extends StatelessWidget {
       _ => const Color(0xFFF8FAFC),
     };
 
+    final nextStatus = switch (material.status) {
+      'needed' => 'ordered',
+      'ordered' => 'received',
+      'received' => 'installed',
+      _ => null,
+    };
+
+    final nextStatusLabel = switch (material.status) {
+      'needed' => 'Mark Ordered',
+      'ordered' => 'Mark Received',
+      'received' => 'Mark Installed',
+      _ => null,
+    };
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -579,6 +593,19 @@ class _MaterialTile extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (canUpdateStatus && nextStatus != null && nextStatusLabel != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: enabled
+                          ? () => onUpdateStatus(nextStatus)
+                          : null,
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: Text(nextStatusLabel),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
