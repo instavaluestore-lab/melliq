@@ -138,6 +138,10 @@ class CompanyContext {
     return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }
 
+  bool get canDeleteTasks {
+    return isPrimaryAdmin || isCfo || isAdmin || isManager;
+  }
+
   bool get canUploadProjectFiles {
     return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }

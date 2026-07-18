@@ -940,6 +940,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canDeleteProjectFiles = widget.companyContext.canDeleteProjectFiles;
     final canCreateTasks = widget.companyContext.canCreateTasks;
     final canCompleteTasks = widget.companyContext.canCompleteTasks;
+    final canDeleteTasks = widget.companyContext.canDeleteTasks;
     final canUpdateProjectStatus =
         widget.companyContext.canUpdateProjectStatus;
 
@@ -1149,7 +1150,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         enabled: !isSaving,
                         canAddTask: canCreateTasks,
                         canCompleteTask: canCompleteTasks,
-                        canDeleteTask: canCreateTasks,
+                        canDeleteTask: canDeleteTasks,
                         onAddTask: addProjectTask,
                         onToggleTask: toggleProjectTask,
                         onDeleteTask: deleteProjectTask,
