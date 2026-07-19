@@ -233,6 +233,22 @@ class QuoteService {
     return Quote.fromMap(quoteRow).copyWith(lineItems: savedLineItems);
   }
 
+  Future<void> markQuoteConverted({
+    required String quoteId,
+    required String projectId,
+    required String convertedBy,
+  }) async {
+    await _supabase
+        .from('quotes')
+        .update({
+          'converted_project_id': projectId,
+          'converted_at': DateTime.now().toUtc().toIso8601String(),
+          'converted_by': convertedBy,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', quoteId);
+  }
+
   Future<void> archiveQuote(String quoteId) async {
     await _supabase
         .from('quotes')

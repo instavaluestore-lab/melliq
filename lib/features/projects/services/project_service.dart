@@ -172,7 +172,7 @@ class ProjectService {
     return 'MS26-${highestNumber + 1}';
   }
 
-  Future<void> createProjectForCustomer({
+  Future<String> createProjectForCustomer({
     required String companyId,
     required String customerId,
     required String createdBy,
@@ -187,6 +187,9 @@ class ProjectService {
     required String status,
     required String priority,
     required String notes,
+    double contractAmount = 0,
+    double estimatedCost = 0,
+    double estimatedProfit = 0,
   }) async {
     final createdProject = await _supabase
         .from('projects')
@@ -204,10 +207,10 @@ class ProjectService {
           'state': _emptyToNull(state),
           'postal_code': _emptyToNull(postalCode),
           'country': country.trim().isEmpty ? 'USA' : country.trim(),
-          'contract_amount': 0,
-          'estimated_cost': 0,
+          'contract_amount': contractAmount,
+          'estimated_cost': estimatedCost,
           'actual_cost': 0,
-          'estimated_profit': 0,
+          'estimated_profit': estimatedProfit,
           'actual_profit': 0,
           'notes': _emptyToNull(notes),
         })
@@ -221,6 +224,8 @@ class ProjectService {
       projectId: projectId,
       createdBy: createdBy,
     );
+
+    return projectId;
   }
 
   Future<ProjectDashboardMetrics> getCompanyDashboardMetrics({

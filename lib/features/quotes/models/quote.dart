@@ -25,6 +25,9 @@ class Quote {
     this.validUntil,
     this.createdBy,
     this.archivedAt,
+    this.convertedProjectId,
+    this.convertedAt,
+    this.convertedBy,
     this.lineItems = const [],
   });
 
@@ -51,9 +54,13 @@ class Quote {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? archivedAt;
+  final String? convertedProjectId;
+  final DateTime? convertedAt;
+  final String? convertedBy;
   final List<QuoteLineItem> lineItems;
 
   bool get isArchived => archivedAt != null;
+  bool get isConverted => convertedProjectId != null;
 
   String get statusLabel {
     return switch (status) {
@@ -92,6 +99,9 @@ class Quote {
       createdAt: createdAt,
       updatedAt: updatedAt,
       archivedAt: archivedAt,
+      convertedProjectId: convertedProjectId,
+      convertedAt: convertedAt,
+      convertedBy: convertedBy,
       lineItems: lineItems ?? this.lineItems,
     );
   }
@@ -125,6 +135,11 @@ class Quote {
       archivedAt: map['archived_at'] == null
           ? null
           : DateTime.parse(map['archived_at'] as String),
+      convertedProjectId: map['converted_project_id'] as String?,
+      convertedAt: map['converted_at'] == null
+          ? null
+          : DateTime.parse(map['converted_at'] as String),
+      convertedBy: map['converted_by'] as String?,
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../company/models/company_context.dart';
 import '../../customers/models/customer.dart';
 import '../../customers/services/customer_service.dart';
+import '../../projects/services/project_service.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 import '../services/quote_service.dart';
@@ -25,6 +26,7 @@ class QuoteFormScreen extends StatefulWidget {
 class _QuoteFormScreenState extends State<QuoteFormScreen> {
   late final CustomerService customerService;
   late final QuoteService quoteService;
+  late final ProjectService projectService;
 
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -35,6 +37,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   bool isLoading = true;
   bool isSaving = false;
+  bool isConverting = false;
   String? errorMessage;
 
   List<Customer> customers = [];
@@ -46,11 +49,16 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   CompanyContext get companyContext => widget.companyContext;
 
+  bool get canConvertToProject {
+    return isEditing && selectedStatus == 'approved' && widget.quote?.isConverted != true;
+  }
+
   @override
   void initState() {
     super.initState();
     customerService = CustomerService(Supabase.instance.client);
     quoteService = QuoteService(Supabase.instance.client);
+    projectService = ProjectService(Supabase.instance.client);
     _loadInitialData();
   }
 
@@ -262,6 +270,110 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     }
   }
 
+  Future<void> _convertApprovedQuoteToProject() async {
+    final quote = widget.quote;
+
+    if (quote == null) {
+      return;
+    }
+
+    if (quote.isConverted) {
+      setState(() {
+        errorMessage = 'This quote has already been converted to a project.';
+      });
+      return;
+    }
+
+    if (selectedStatus != 'approved') {
+      setState(() {
+        errorMessage = 'Only approved quotes can be converted to projects.';
+      });
+      return;
+    }
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (userId == null) {
+      setState(() {
+        errorMessage = 'Could not identify the current user.';
+      });
+      return;
+    }
+
+    if (selectedCustomerId == null) {
+      setState(() {
+        errorMessage = 'Select a customer before converting this quote.';
+      });
+      return;
+    }
+
+    setState(() {
+      isConverting = true;
+      errorMessage = null;
+    });
+
+    try {
+      final selectedCustomer = customers.firstWhere(
+        (customer) => customer.id == selectedCustomerId,
+      );
+
+      final totals = _totals();
+
+      final projectNumber = await projectService.getNextProjectNumber(
+        companyId: companyContext.companyId,
+      );
+
+      final projectId = await projectService.createProjectForCustomer(
+        companyId: companyContext.companyId,
+        customerId: selectedCustomer.id,
+        createdBy: userId,
+        projectName: titleController.text.trim().isEmpty
+            ? 'Project from ${quote.quoteNumber}'
+            : titleController.text.trim(),
+        projectNumber: projectNumber,
+        addressLine1: '',
+        addressLine2: '',
+        city: selectedCustomer.city ?? '',
+        state: selectedCustomer.state ?? '',
+        postalCode: '',
+        country: 'USA',
+        status: 'contract',
+        priority: 'normal',
+        notes: [
+          'Converted from quote ${quote.quoteNumber}.',
+          if (notesController.text.trim().isNotEmpty)
+            notesController.text.trim(),
+        ].join('\n\n'),
+        contractAmount: totals.totalAmount,
+        estimatedCost: totals.estimatedCost,
+        estimatedProfit: totals.estimatedProfit,
+      );
+
+      await quoteService.markQuoteConverted(
+        quoteId: quote.id,
+        projectId: projectId,
+        convertedBy: userId,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Approved quote converted to project.'),
+        ),
+      );
+
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = 'Could not convert quote to project: $error';
+        isConverting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final totals = _totals();
@@ -459,7 +571,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: isSaving || customers.isEmpty ? null : _saveQuote,
+                    onPressed: isSaving || isConverting || customers.isEmpty
+                        ? null
+                        : _saveQuote,
                     icon: isSaving
                         ? const SizedBox(
                             height: 18,
@@ -469,6 +583,26 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         : const Icon(Icons.save),
                     label: Text(isSaving ? 'Saving...' : 'Save Quote'),
                   ),
+                  if (canConvertToProject) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: isSaving || isConverting || customers.isEmpty
+                          ? null
+                          : _convertApprovedQuoteToProject,
+                      icon: isConverting
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.assignment_turned_in_outlined),
+                      label: Text(
+                        isConverting
+                            ? 'Converting...'
+                            : 'Convert Approved Quote to Project',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 80),
                 ],
               ),
