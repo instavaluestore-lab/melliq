@@ -98,7 +98,7 @@ class QuoteService {
     final rows = response.cast<Map<String, dynamic>>();
     var highestNumber = 999;
 
-    final pattern = RegExp(r'^Q26-(\\d+)$');
+    final pattern = RegExp(r'^Q26-(\d+)$');
 
     for (final row in rows) {
       final value = row['quote_number']?.toString().trim() ?? '';
