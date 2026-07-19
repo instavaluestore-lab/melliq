@@ -85,6 +85,21 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
     }
   }
 
+  Future<void> _openEditQuoteForm(Quote quote) async {
+    final didSave = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => QuoteFormScreen(
+          companyContext: companyContext,
+          quote: quote,
+        ),
+      ),
+    );
+
+    if (didSave == true) {
+      await loadQuotes();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final canManageQuotes =
@@ -154,6 +169,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                 (quote) => _QuoteCard(
                   quote: quote,
                   statusColor: _statusColor(quote.status),
+                  onTap: () => _openEditQuoteForm(quote),
                 ),
               ),
             const SizedBox(height: 80),
@@ -216,10 +232,12 @@ class _QuoteCard extends StatelessWidget {
   const _QuoteCard({
     required this.quote,
     required this.statusColor,
+    required this.onTap,
   });
 
   final Quote quote;
   final Color statusColor;
+  final VoidCallback onTap;
 
   String formatCurrency(double value) {
     final negative = value < 0;
@@ -246,9 +264,12 @@ class _QuoteCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Wrap(
@@ -323,8 +344,19 @@ class _QuoteCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Tap to edit',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
           ],
         ),
+      ),
       ),
     );
   }
