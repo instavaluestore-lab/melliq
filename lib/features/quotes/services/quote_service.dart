@@ -57,10 +57,7 @@ class QuoteService {
     required String companyId,
     bool includeArchived = false,
   }) async {
-    var query = _supabase
-        .from('quotes')
-        .select()
-        .eq('company_id', companyId);
+    var query = _supabase.from('quotes').select().eq('company_id', companyId);
 
     if (!includeArchived) {
       query = query.isFilter('archived_at', null);
@@ -86,9 +83,7 @@ class QuoteService {
     return rows.map<QuoteLineItem>(QuoteLineItem.fromMap).toList();
   }
 
-  Future<String> getNextQuoteNumber({
-    required String companyId,
-  }) async {
+  Future<String> getNextQuoteNumber({required String companyId}) async {
     final response = await _supabase
         .from('quotes')
         .select('quote_number')
@@ -124,6 +119,11 @@ class QuoteService {
     required double taxPercent,
     required double discountAmount,
     required List<QuoteDraftLineItem> lineItems,
+    String? structureType,
+    String? mountType,
+    String? footerType,
+    bool permitRequired = false,
+    bool specialtyEquipmentRequired = false,
     String? leadId,
     String? notes,
     DateTime? validUntil,
@@ -152,6 +152,11 @@ class QuoteService {
           'tax_percent': taxPercent,
           'tax_amount': totals.taxAmount,
           'discount_amount': discountAmount,
+          'structure_type': structureType,
+          'mount_type': mountType,
+          'footer_type': footerType,
+          'permit_required': permitRequired,
+          'specialty_equipment_required': specialtyEquipmentRequired,
           'total_amount': totals.totalAmount,
           'estimated_cost': totals.estimatedCost,
           'estimated_profit': totals.estimatedProfit,
@@ -186,6 +191,11 @@ class QuoteService {
     required double taxPercent,
     required double discountAmount,
     required List<QuoteDraftLineItem> lineItems,
+    String? structureType,
+    String? mountType,
+    String? footerType,
+    bool permitRequired = false,
+    bool specialtyEquipmentRequired = false,
     String? leadId,
     String? notes,
     DateTime? validUntil,
@@ -210,6 +220,11 @@ class QuoteService {
           'tax_percent': taxPercent,
           'tax_amount': totals.taxAmount,
           'discount_amount': discountAmount,
+          'structure_type': structureType,
+          'mount_type': mountType,
+          'footer_type': footerType,
+          'permit_required': permitRequired,
+          'specialty_equipment_required': specialtyEquipmentRequired,
           'total_amount': totals.totalAmount,
           'estimated_cost': totals.estimatedCost,
           'estimated_profit': totals.estimatedProfit,
@@ -265,14 +280,13 @@ class QuoteService {
     required String quoteId,
     required List<QuoteDraftLineItem> lineItems,
   }) async {
-    await _supabase
-        .from('quote_line_items')
-        .delete()
-        .eq('quote_id', quoteId);
+    await _supabase.from('quote_line_items').delete().eq('quote_id', quoteId);
 
     if (lineItems.isEmpty) return;
 
-    await _supabase.from('quote_line_items').insert(
+    await _supabase
+        .from('quote_line_items')
+        .insert(
           lineItems
               .asMap()
               .entries
@@ -314,11 +328,14 @@ class QuoteService {
     );
     final markupAmount = subtotal * (markupPercent / 100);
     final taxableAmount = subtotal + markupAmount - discountAmount;
-    final taxAmount = taxableAmount <= 0 ? 0.0 : taxableAmount * (taxPercent / 100);
+    final taxAmount = taxableAmount <= 0
+        ? 0.0
+        : taxableAmount * (taxPercent / 100);
     final totalAmount = taxableAmount + taxAmount;
     final estimatedProfit = totalAmount - estimatedCost;
-    final estimatedMarginPercent =
-        totalAmount <= 0 ? 0.0 : (estimatedProfit / totalAmount) * 100;
+    final estimatedMarginPercent = totalAmount <= 0
+        ? 0.0
+        : (estimatedProfit / totalAmount) * 100;
 
     return QuoteTotals(
       subtotal: subtotal,

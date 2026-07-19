@@ -11,11 +11,7 @@ import '../models/quote_line_item.dart';
 import '../services/quote_service.dart';
 
 class QuoteFormScreen extends StatefulWidget {
-  const QuoteFormScreen({
-    super.key,
-    required this.companyContext,
-    this.quote,
-  });
+  const QuoteFormScreen({super.key, required this.companyContext, this.quote});
 
   final CompanyContext companyContext;
   final Quote? quote;
@@ -45,6 +41,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   List<Customer> customers = [];
   String? selectedCustomerId;
   String selectedStatus = 'draft';
+  String? selectedStructureType;
+  String? selectedMountType;
+  String? selectedFooterType;
+  bool permitRequired = false;
+  bool specialtyEquipmentRequired = false;
   List<_QuoteLineItemEditor> lineItems = [];
 
   bool get isEditing => widget.quote != null;
@@ -52,7 +53,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   CompanyContext get companyContext => widget.companyContext;
 
   bool get canConvertToProject {
-    return isEditing && selectedStatus == 'approved' && widget.quote?.isConverted != true;
+    return isEditing &&
+        selectedStatus == 'approved' &&
+        widget.quote?.isConverted != true;
   }
 
   @override
@@ -108,6 +111,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         if (quote != null) {
           selectedCustomerId = quote.customerId;
           selectedStatus = quote.status;
+          selectedStructureType = quote.structureType;
+          selectedMountType = quote.mountType;
+          selectedFooterType = quote.footerType;
+          permitRequired = quote.permitRequired;
+          specialtyEquipmentRequired = quote.specialtyEquipmentRequired;
           titleController.text = quote.title;
           markupController.text = quote.markupPercent.toStringAsFixed(2);
           taxController.text = quote.taxPercent.toStringAsFixed(2);
@@ -117,8 +125,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
               .map(_QuoteLineItemEditor.fromSavedLineItem)
               .toList();
         } else {
-          selectedCustomerId =
-              loadedCustomers.isEmpty ? null : loadedCustomers.first.id;
+          selectedCustomerId = loadedCustomers.isEmpty
+              ? null
+              : loadedCustomers.first.id;
           lineItems = [_QuoteLineItemEditor.empty(sortOrder: 0)];
         }
 
@@ -207,12 +216,40 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     });
   }
 
+  void _popWithResult(bool result) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pop(result);
+    });
+  }
+
   Future<void> _saveQuote() async {
     if (!formKey.currentState!.validate()) return;
 
     if (selectedCustomerId == null) {
       setState(() {
         errorMessage = 'Select a customer before saving the quote.';
+      });
+      return;
+    }
+
+    if (selectedStructureType == null) {
+      setState(() {
+        errorMessage = 'Select a structure type before saving the quote.';
+      });
+      return;
+    }
+
+    if (selectedMountType == null) {
+      setState(() {
+        errorMessage = 'Select a mount type before saving the quote.';
+      });
+      return;
+    }
+
+    if (selectedFooterType == null) {
+      setState(() {
+        errorMessage = 'Select a footer type before saving the quote.';
       });
       return;
     }
@@ -242,6 +279,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           taxPercent: _parsePercent(taxController),
           discountAmount: _parseMoney(discountController),
           lineItems: draftLineItems,
+          structureType: selectedStructureType,
+          mountType: selectedMountType,
+          footerType: selectedFooterType,
+          permitRequired: permitRequired,
+          specialtyEquipmentRequired: specialtyEquipmentRequired,
           notes: notesController.text,
         );
       } else {
@@ -255,6 +297,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           taxPercent: _parsePercent(taxController),
           discountAmount: _parseMoney(discountController),
           lineItems: draftLineItems,
+          structureType: selectedStructureType,
+          mountType: selectedMountType,
+          footerType: selectedFooterType,
+          permitRequired: permitRequired,
+          specialtyEquipmentRequired: specialtyEquipmentRequired,
           leadId: widget.quote!.leadId,
           notes: notesController.text,
         );
@@ -262,7 +309,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pop(true);
+      _popWithResult(true);
     } catch (error) {
       if (!mounted) return;
 
@@ -400,12 +447,10 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Approved quote converted to project.'),
-        ),
+        const SnackBar(content: Text('Approved quote converted to project.')),
       );
 
-      Navigator.of(context).pop(true);
+      _popWithResult(true);
     } catch (error) {
       if (!mounted) return;
 
@@ -421,9 +466,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     final totals = _totals();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Edit Quote' : 'Add Quote'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Quote' : 'Add Quote')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -485,6 +528,134 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
+
+                  const SizedBox(height: 16),
+                  Text(
+                    'Project Configuration',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedStructureType,
+                    decoration: const InputDecoration(
+                      labelText: 'Structure Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'HT',
+                        child: Text('High Tension Structure — HT'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'HR',
+                        child: Text('Hip Roof Structure — HR'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'SP',
+                        child: Text('Single Post — SP'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'CL',
+                        child: Text('Cantilever Structure — CL'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'CSTM',
+                        child: Text('Custom — CSTM'),
+                      ),
+                    ],
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              selectedStructureType = value;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedMountType,
+                    decoration: const InputDecoration(
+                      labelText: 'Mount Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'in_ground',
+                        child: Text('In-Ground Mount'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'base_plate',
+                        child: Text('Base Plate Mount'),
+                      ),
+                    ],
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              selectedMountType = value;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedFooterType,
+                    decoration: const InputDecoration(
+                      labelText: 'Footer Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'standard_2x2x5',
+                        child: Text('Standard 2 × 2 × 5'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'standard_7x30',
+                        child: Text('Standard 7 ft deep × 30 in diameter'),
+                      ),
+                      DropdownMenuItem(value: 'custom', child: Text('Custom')),
+                    ],
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              selectedFooterType = value;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    value: permitRequired,
+                    title: const Text('Permit Required'),
+                    subtitle: Text(
+                      permitRequired
+                          ? 'Permit requirement will transfer to the project later.'
+                          : 'No permit fee added at this stage.',
+                    ),
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              permitRequired = value;
+                            });
+                          },
+                  ),
+                  SwitchListTile(
+                    value: specialtyEquipmentRequired,
+                    title: const Text('Specialty Equipment Required'),
+                    subtitle: Text(
+                      specialtyEquipmentRequired
+                          ? 'Equipment details will be added in the next phase.'
+                          : 'No specialty equipment required.',
+                    ),
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              specialtyEquipmentRequired = value;
+                            });
+                          },
+                  ),
+
                   TextFormField(
                     controller: titleController,
                     decoration: const InputDecoration(
@@ -529,8 +700,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   Text(
                     'Pricing',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -576,8 +747,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   Text(
                     'Line Items',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ...lineItems.map(
@@ -597,10 +768,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _TotalsCard(
-                    totals: totals,
-                    formatCurrency: _formatCurrency,
-                  ),
+                  _TotalsCard(totals: totals, formatCurrency: _formatCurrency),
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: notesController,
@@ -694,7 +862,9 @@ class _QuoteLineItemEditor {
     return _QuoteLineItemEditor(
       itemType: item.itemType,
       nameController: TextEditingController(text: item.name),
-      descriptionController: TextEditingController(text: item.description ?? ''),
+      descriptionController: TextEditingController(
+        text: item.description ?? '',
+      ),
       quantityController: TextEditingController(
         text: item.quantity.toStringAsFixed(2),
       ),
@@ -763,10 +933,7 @@ class _LineItemCard extends StatelessWidget {
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(
-                        value: 'labor',
-                        child: Text('Labor'),
-                      ),
+                      DropdownMenuItem(value: 'labor', child: Text('Labor')),
                       DropdownMenuItem(
                         value: 'material',
                         child: Text('Material'),
@@ -779,10 +946,7 @@ class _LineItemCard extends StatelessWidget {
                         value: 'subcontractor',
                         child: Text('Subcontractor'),
                       ),
-                      DropdownMenuItem(
-                        value: 'other',
-                        child: Text('Other'),
-                      ),
+                      DropdownMenuItem(value: 'other', child: Text('Other')),
                     ],
                     onChanged: (value) {
                       if (value == null) return;
@@ -882,9 +1046,9 @@ class _LineItemCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Text(
                 'Line total: ${formatCurrency(item.totalPrice)}',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
           ],
@@ -895,10 +1059,7 @@ class _LineItemCard extends StatelessWidget {
 }
 
 class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({
-    required this.totals,
-    required this.formatCurrency,
-  });
+  const _TotalsCard({required this.totals, required this.formatCurrency});
 
   final QuoteTotals totals;
   final String Function(double value) formatCurrency;
@@ -906,9 +1067,9 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Theme.of(context).colorScheme.primaryContainer.withValues(
-            alpha: 0.35,
-          ),
+      color: Theme.of(
+        context,
+      ).colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Wrap(
@@ -923,10 +1084,7 @@ class _TotalsCard extends StatelessWidget {
               label: 'Markup',
               value: formatCurrency(totals.markupAmount),
             ),
-            _TotalMetric(
-              label: 'Tax',
-              value: formatCurrency(totals.taxAmount),
-            ),
+            _TotalMetric(label: 'Tax', value: formatCurrency(totals.taxAmount)),
             _TotalMetric(
               label: 'Total',
               value: formatCurrency(totals.totalAmount),
@@ -974,8 +1132,8 @@ class _TotalMetric extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
-                ),
+              fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+            ),
           ),
         ],
       ),

@@ -23,6 +23,11 @@ class Quote {
     this.leadId,
     this.notes,
     this.validUntil,
+    this.structureType,
+    this.mountType,
+    this.footerType,
+    this.permitRequired = false,
+    this.specialtyEquipmentRequired = false,
     this.createdBy,
     this.archivedAt,
     this.convertedProjectId,
@@ -50,6 +55,11 @@ class Quote {
   final double estimatedMarginPercent;
   final String? notes;
   final DateTime? validUntil;
+  final String? structureType;
+  final String? mountType;
+  final String? footerType;
+  final bool permitRequired;
+  final bool specialtyEquipmentRequired;
   final String? createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -72,9 +82,7 @@ class Quote {
     };
   }
 
-  Quote copyWith({
-    List<QuoteLineItem>? lineItems,
-  }) {
+  Quote copyWith({List<QuoteLineItem>? lineItems}) {
     return Quote(
       id: id,
       companyId: companyId,
@@ -95,6 +103,11 @@ class Quote {
       estimatedMarginPercent: estimatedMarginPercent,
       notes: notes,
       validUntil: validUntil,
+      structureType: structureType,
+      mountType: mountType,
+      footerType: footerType,
+      permitRequired: permitRequired,
+      specialtyEquipmentRequired: specialtyEquipmentRequired,
       createdBy: createdBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -129,6 +142,12 @@ class Quote {
       validUntil: map['valid_until'] == null
           ? null
           : DateTime.parse(map['valid_until'] as String),
+      structureType: map['structure_type'] as String?,
+      mountType: map['mount_type'] as String?,
+      footerType: map['footer_type'] as String?,
+      permitRequired: map['permit_required'] as bool? ?? false,
+      specialtyEquipmentRequired:
+          map['specialty_equipment_required'] as bool? ?? false,
       createdBy: map['created_by'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
