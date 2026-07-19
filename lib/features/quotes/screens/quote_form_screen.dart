@@ -5,6 +5,7 @@ import '../../company/models/company_context.dart';
 import '../../customers/models/customer.dart';
 import '../../customers/services/customer_service.dart';
 import '../../projects/services/project_service.dart';
+import '../../audit/services/audit_log_service.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 import '../services/quote_service.dart';
@@ -27,6 +28,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   late final CustomerService customerService;
   late final QuoteService quoteService;
   late final ProjectService projectService;
+  late final AuditLogService auditLogService;
 
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -59,6 +61,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     customerService = CustomerService(Supabase.instance.client);
     quoteService = QuoteService(Supabase.instance.client);
     projectService = ProjectService(Supabase.instance.client);
+    auditLogService = AuditLogService(Supabase.instance.client);
     _loadInitialData();
   }
 
@@ -347,12 +350,51 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         contractAmount: totals.totalAmount,
         estimatedCost: totals.estimatedCost,
         estimatedProfit: totals.estimatedProfit,
+        sourceQuoteId: quote.id,
       );
 
       await quoteService.markQuoteConverted(
         quoteId: quote.id,
         projectId: projectId,
         convertedBy: userId,
+      );
+
+      await auditLogService.logAction(
+        companyId: companyContext.companyId,
+        recordType: 'quote',
+        recordId: quote.id,
+        action: 'converted_to_project',
+        summary:
+            'Quote ${quote.quoteNumber} was converted to project $projectNumber.',
+        metadata: {
+          'quote_id': quote.id,
+          'quote_number': quote.quoteNumber,
+          'project_id': projectId,
+          'project_number': projectNumber,
+          'customer_id': selectedCustomer.id,
+          'contract_amount': totals.totalAmount,
+          'estimated_cost': totals.estimatedCost,
+          'estimated_profit': totals.estimatedProfit,
+        },
+      );
+
+      await auditLogService.logAction(
+        companyId: companyContext.companyId,
+        recordType: 'project',
+        recordId: projectId,
+        action: 'created_from_quote',
+        summary:
+            'Project $projectNumber was created from quote ${quote.quoteNumber}.',
+        metadata: {
+          'quote_id': quote.id,
+          'quote_number': quote.quoteNumber,
+          'project_id': projectId,
+          'project_number': projectNumber,
+          'customer_id': selectedCustomer.id,
+          'contract_amount': totals.totalAmount,
+          'estimated_cost': totals.estimatedCost,
+          'estimated_profit': totals.estimatedProfit,
+        },
       );
 
       if (!mounted) return;

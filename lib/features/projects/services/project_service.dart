@@ -190,13 +190,16 @@ class ProjectService {
     double contractAmount = 0,
     double estimatedCost = 0,
     double estimatedProfit = 0,
+    String? sourceQuoteId,
   }) async {
     final createdProject = await _supabase
         .from('projects')
         .insert({
           'company_id': companyId,
           'customer_id': customerId,
+          'source_quote_id': sourceQuoteId,
           'created_by': createdBy,
+          'updated_by': createdBy,
           'project_number': projectNumber.trim(),
           'name': projectName.trim(),
           'status': status,

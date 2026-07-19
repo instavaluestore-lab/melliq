@@ -244,6 +244,7 @@ class QuoteService {
           'converted_project_id': projectId,
           'converted_at': DateTime.now().toUtc().toIso8601String(),
           'converted_by': convertedBy,
+          'updated_by': convertedBy,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', quoteId);
