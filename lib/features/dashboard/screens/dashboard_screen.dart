@@ -8,6 +8,7 @@ import '../../company/services/company_service.dart';
 import '../../customers/screens/customers_list_screen.dart';
 import '../../leads/screens/leads_list_screen.dart';
 import '../../projects/screens/projects_list_screen.dart';
+import '../../quotes/screens/quotes_list_screen.dart';
 import '../../projects/services/project_service.dart';
 import '../../team/screens/team_members_screen.dart';
 
@@ -227,6 +228,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                         },
                         child: const Text('View Leads'),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => QuotesListScreen(
+                                companyContext: companyContext!,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('View Quotes'),
                       ),
                     ),
                     SizedBox(
