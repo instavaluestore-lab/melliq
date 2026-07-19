@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../company/models/company_context.dart';
 import '../models/quote.dart';
 import '../services/quote_service.dart';
+import 'quote_form_screen.dart';
 
 class QuotesListScreen extends StatefulWidget {
   const QuotesListScreen({
@@ -70,25 +71,18 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
     };
   }
 
-  Future<void> _showAddQuoteComingSoon() async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Quote Form Coming Next'),
-          content: const Text(
-            'The quote database, permissions, models, and service are ready. '
-            'Next we will add the quote form with customer selection and line items.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+  Future<void> _openAddQuoteForm() async {
+    final didSave = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => QuoteFormScreen(
+          companyContext: companyContext,
+        ),
+      ),
     );
+
+    if (didSave == true) {
+      await loadQuotes();
+    }
   }
 
   @override
@@ -112,7 +106,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
       ),
       floatingActionButton: canManageQuotes
           ? FloatingActionButton.extended(
-              onPressed: _showAddQuoteComingSoon,
+              onPressed: _openAddQuoteForm,
               icon: const Icon(Icons.add),
               label: const Text('Add Quote'),
             )
@@ -153,7 +147,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
             else if (quotes.isEmpty)
               _EmptyQuotesCard(
                 canManageQuotes: canManageQuotes,
-                onAddQuote: _showAddQuoteComingSoon,
+                onAddQuote: _openAddQuoteForm,
               )
             else
               ...quotes.map(
