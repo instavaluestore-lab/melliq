@@ -108,11 +108,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     projectFileService = ProjectFileService(Supabase.instance.client);
     materialService = MaterialService(Supabase.instance.client);
     stageCostService = ProjectStageCostService(Supabase.instance.client);
-    stageCostItemService = ProjectStageCostItemService(Supabase.instance.client);
+    stageCostItemService = ProjectStageCostItemService(
+      Supabase.instance.client,
+    );
     projectTaskService = ProjectTaskService(Supabase.instance.client);
     projectNoteService = ProjectNoteService(Supabase.instance.client);
-    projectActivityLogService =
-        ProjectActivityLogService(Supabase.instance.client);
+    projectActivityLogService = ProjectActivityLogService(
+      Supabase.instance.client,
+    );
 
     loadProjectDetail();
   }
@@ -155,31 +158,29 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: project.id,
       );
 
-      final freshStageCostItems =
-          await stageCostItemService.getItemsForProject(
+      final freshStageCostItems = await stageCostItemService.getItemsForProject(
         companyId: widget.companyContext.companyId,
         projectId: project.id,
       );
 
-        final freshProjectTasks = await projectTaskService.getTasksForProject(
-          companyId: widget.companyContext.companyId,
-          projectId: project.id,
-        );
+      final freshProjectTasks = await projectTaskService.getTasksForProject(
+        companyId: widget.companyContext.companyId,
+        projectId: project.id,
+      );
 
-        final freshProjectFiles = await projectFileService.getFilesForProject(
-          companyId: widget.companyContext.companyId,
-          projectId: project.id,
-        );
+      final freshProjectFiles = await projectFileService.getFilesForProject(
+        companyId: widget.companyContext.companyId,
+        projectId: project.id,
+      );
 
-        final freshProjectMaterials = await materialService.getMaterialsForProject(
-          companyId: widget.companyContext.companyId,
-          projectId: project.id,
-        );
+      final freshProjectMaterials = await materialService
+          .getMaterialsForProject(
+            companyId: widget.companyContext.companyId,
+            projectId: project.id,
+          );
 
-        final freshProjectActivityLogs =
-            await projectActivityLogService.getProjectActivityLogs(
-          projectId: project.id,
-        );
+      final freshProjectActivityLogs = await projectActivityLogService
+          .getProjectActivityLogs(projectId: project.id);
 
       _syncControllers(freshProject, freshStageCosts, freshStageCostItems);
 
@@ -190,10 +191,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         selectedStatus = freshProject.status;
         stageCosts = freshStageCosts;
         stageCostItems = freshStageCostItems;
-          projectTasks = freshProjectTasks;
-          projectFiles = freshProjectFiles;
-          projectMaterials = freshProjectMaterials;
-          projectActivityLogs = freshProjectActivityLogs;
+        projectTasks = freshProjectTasks;
+        projectFiles = freshProjectFiles;
+        projectMaterials = freshProjectMaterials;
+        projectActivityLogs = freshProjectActivityLogs;
         isLoading = false;
       });
     } catch (error) {
@@ -211,8 +212,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     List<ProjectStageCost> freshStageCosts,
     List<ProjectStageCostItem> freshStageCostItems,
   ) {
-    contractAmountController.text =
-        _formatMoneyInput(freshProject.contractAmount);
+    contractAmountController.text = _formatMoneyInput(
+      freshProject.contractAmount,
+    );
 
     for (final stageCost in freshStageCosts) {
       descriptionControllers.putIfAbsent(
@@ -227,18 +229,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         stageCost.id,
         () => TextEditingController(),
       );
-      notesControllers.putIfAbsent(
-        stageCost.id,
-        () => TextEditingController(),
-      );
+      notesControllers.putIfAbsent(stageCost.id, () => TextEditingController());
       peopleControllers.putIfAbsent(
         stageCost.id,
         () => TextEditingController(),
       );
-      hoursControllers.putIfAbsent(
-        stageCost.id,
-        () => TextEditingController(),
-      );
+      hoursControllers.putIfAbsent(stageCost.id, () => TextEditingController());
       hourlyRateControllers.putIfAbsent(
         stageCost.id,
         () => TextEditingController(),
@@ -264,55 +260,87 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         () => TextEditingController(),
       );
 
-      descriptionControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
+      descriptionControllers
+              .putIfAbsent(stageCost.id, () => TextEditingController())
+              .text =
           stageCost.description ?? stageCost.stageLabel;
-      estimatedControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.estimatedCost);
-      actualControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.actualCost);
-      notesControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text = stageCost.notes ?? '';
+      estimatedControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.estimatedCost,
+      );
+      actualControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.actualCost,
+      );
+      notesControllers
+              .putIfAbsent(stageCost.id, () => TextEditingController())
+              .text =
+          stageCost.notes ?? '';
 
-      peopleControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          stageCost.peopleCount == 0 ? '' : stageCost.peopleCount.toString();
-      hoursControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.hoursEach);
-      hourlyRateControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.costPerHour);
-      flatFeeControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.flatFee);
+      peopleControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = stageCost.peopleCount == 0
+          ? ''
+          : stageCost.peopleCount.toString();
+      hoursControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.hoursEach,
+      );
+      hourlyRateControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.costPerHour,
+      );
+      flatFeeControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.flatFee,
+      );
 
-      concreteBagCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          stageCost.concreteBagCount == 0
-              ? ''
-              : stageCost.concreteBagCount.toString();
-      concreteBagCostControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.concreteBagCost);
-      rebarStickCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          stageCost.rebarStickCount == 0
-              ? ''
-              : stageCost.rebarStickCount.toString();
-      rebarStickCostControllers.putIfAbsent(stageCost.id, () => TextEditingController()).text =
-          _formatMoneyInput(stageCost.rebarStickCost);
+      concreteBagCountControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = stageCost.concreteBagCount == 0
+          ? ''
+          : stageCost.concreteBagCount.toString();
+      concreteBagCostControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.concreteBagCost,
+      );
+      rebarStickCountControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = stageCost.rebarStickCount == 0
+          ? ''
+          : stageCost.rebarStickCount.toString();
+      rebarStickCostControllers
+          .putIfAbsent(stageCost.id, () => TextEditingController())
+          .text = _formatMoneyInput(
+        stageCost.rebarStickCost,
+      );
 
       completedValues[stageCost.id] = stageCost.isCompleted;
       useFlatFeeValues[stageCost.id] = stageCost.useFlatFee;
       concreteUnitTypeValues[stageCost.id] = stageCost.concreteUnitType;
     }
 
-      for (final item in freshStageCostItems) {
-        itemDescriptionControllers.putIfAbsent(
-          item.id,
-          () => TextEditingController(),
-        );
-        itemActualCostControllers.putIfAbsent(
-          item.id,
-          () => TextEditingController(),
-        );
+    for (final item in freshStageCostItems) {
+      itemDescriptionControllers.putIfAbsent(
+        item.id,
+        () => TextEditingController(),
+      );
+      itemActualCostControllers.putIfAbsent(
+        item.id,
+        () => TextEditingController(),
+      );
 
-        itemDescriptionControllers[item.id]!.text = item.description ?? '';
-        itemActualCostControllers[item.id]!.text =
-            _formatMoneyInput(item.actualCost);
-      }
+      itemDescriptionControllers[item.id]!.text = item.description ?? '';
+      itemActualCostControllers[item.id]!.text = _formatMoneyInput(
+        item.actualCost,
+      );
+    }
   }
 
   Future<void> addMiscellaneousExpense() async {
@@ -326,7 +354,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         companyId: widget.companyContext.companyId,
         projectId: project.id,
         createdBy: widget.companyContext.userId,
-        description: 'Miscellaneous Expense',
+        description: '',
       );
 
       await loadProjectDetail();
@@ -345,7 +373,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       });
     }
   }
-
 
   Future<void> addStageCostItem(ProjectStageCost stageCost) async {
     setState(() {
@@ -484,8 +511,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           isCompleted: completedValues[stageCost.id] ?? false,
           peopleCount: _parseInt(peopleControllers[stageCost.id]?.text ?? '0'),
           hoursEach: _parseMoney(hoursControllers[stageCost.id]?.text ?? '0'),
-          costPerHour:
-              _parseMoney(hourlyRateControllers[stageCost.id]?.text ?? '0'),
+          costPerHour: _parseMoney(
+            hourlyRateControllers[stageCost.id]?.text ?? '0',
+          ),
           flatFee: _parseMoney(flatFeeControllers[stageCost.id]?.text ?? '0'),
           useFlatFee: useFlatFeeValues[stageCost.id] ?? false,
           concreteBagCount: _parseInt(
@@ -578,11 +606,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Project status updated.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Project status updated.')));
     } catch (error) {
       if (!mounted) return;
 
@@ -615,14 +641,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           : _laborCost(stageCost.id);
 
       final concreteCost =
-          _parseInt(concreteBagCountControllers[stageCost.id]?.text ?? '0')
-                  .toDouble() *
-              _parseMoney(concreteBagCostControllers[stageCost.id]?.text ?? '0');
+          _parseInt(
+            concreteBagCountControllers[stageCost.id]?.text ?? '0',
+          ).toDouble() *
+          _parseMoney(concreteBagCostControllers[stageCost.id]?.text ?? '0');
 
       final rebarCost =
-          _parseInt(rebarStickCountControllers[stageCost.id]?.text ?? '0')
-                  .toDouble() *
-              _parseMoney(rebarStickCostControllers[stageCost.id]?.text ?? '0');
+          _parseInt(
+            rebarStickCountControllers[stageCost.id]?.text ?? '0',
+          ).toDouble() *
+          _parseMoney(rebarStickCostControllers[stageCost.id]?.text ?? '0');
 
       return laborOrFlatFee + concreteCost + rebarCost;
     }
@@ -631,8 +659,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   double _laborCost(String stageCostId) {
-    return _parseInt(peopleControllers[stageCostId]?.text ?? '0')
-            .toDouble() *
+    return _parseInt(peopleControllers[stageCostId]?.text ?? '0').toDouble() *
         _parseMoney(hoursControllers[stageCostId]?.text ?? '0') *
         _parseMoney(hourlyRateControllers[stageCostId]?.text ?? '0');
   }
@@ -649,26 +676,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   double get baseActualTotal {
-    return stageCosts.fold<double>(
-      0,
-      (total, stageCost) {
-        if (stageCost.isMilestoneOnly) {
-          return total;
-        }
+    return stageCosts.fold<double>(0, (total, stageCost) {
+      if (stageCost.isMilestoneOnly) {
+        return total;
+      }
 
-        return total + _parseMoney(actualControllers[stageCost.id]?.text ?? '0');
-      },
-    );
+      return total + _parseMoney(actualControllers[stageCost.id]?.text ?? '0');
+    });
   }
 
   double get additionalActualTotal {
-    return stageCostItems.fold<double>(
-      0,
-      (total, item) {
-        return total +
-            _parseMoney(itemActualCostControllers[item.id]?.text ?? '0');
-      },
-    );
+    return stageCostItems.fold<double>(0, (total, item) {
+      return total +
+          _parseMoney(itemActualCostControllers[item.id]?.text ?? '0');
+    });
   }
 
   double get materialActualTotal {
@@ -717,12 +738,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       'installation' => 'Installation',
       'final_invoice' => 'Final Invoice',
       'completed' => 'Completed',
-      _ => status
-          .replaceAll('_', ' ')
-          .split(' ')
-          .where((word) => word.isNotEmpty)
-          .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
-          .join(' '),
+      _ =>
+        status
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((word) => word.isNotEmpty)
+            .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+            .join(' '),
     };
   }
 
@@ -732,12 +754,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       'ordered' => 'Ordered',
       'received' => 'Received',
       'installed' => 'Installed',
-      _ => status
-          .replaceAll('_', ' ')
-          .split(' ')
-          .where((word) => word.isNotEmpty)
-          .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
-          .join(' '),
+      _ =>
+        status
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((word) => word.isNotEmpty)
+            .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+            .join(' '),
     };
   }
 
@@ -747,14 +770,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     String? body,
   }) async {
     try {
-      final activityLog =
-          await projectActivityLogService.createProjectActivityLog(
-        companyId: widget.companyContext.companyId,
-        projectId: project.id,
-        activityType: activityType,
-        title: title,
-        body: body,
-      );
+      final activityLog = await projectActivityLogService
+          .createProjectActivityLog(
+            companyId: widget.companyContext.companyId,
+            projectId: project.id,
+            activityType: activityType,
+            title: title,
+            body: body,
+          );
 
       if (!mounted) return activityLog;
 
@@ -774,23 +797,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       builder: (context) {
         return AddProjectTaskDialog(
           assignees: projectTaskAssignees,
-          onSave: ({
-            required title,
-            required description,
-            required priority,
-            required assignedTo,
-            required dueDate,
-          }) {
-            return projectTaskService.createTask(
-              companyId: widget.companyContext.companyId,
-              projectId: project.id,
-              title: title,
-              description: description,
-              priority: priority,
-              assignedTo: assignedTo,
-              dueDate: dueDate,
-            );
-          },
+          onSave:
+              ({
+                required title,
+                required description,
+                required priority,
+                required assignedTo,
+                required dueDate,
+              }) {
+                return projectTaskService.createTask(
+                  companyId: widget.companyContext.companyId,
+                  projectId: project.id,
+                  title: title,
+                  description: description,
+                  priority: priority,
+                  assignedTo: assignedTo,
+                  dueDate: dueDate,
+                );
+              },
         );
       },
     );
@@ -818,8 +842,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
       setState(() {
         projectTasks = projectTasks
-            .map((existingTask) =>
-                existingTask.id == updatedTask.id ? updatedTask : existingTask)
+            .map(
+              (existingTask) => existingTask.id == updatedTask.id
+                  ? updatedTask
+                  : existingTask,
+            )
             .toList();
       });
 
@@ -870,34 +897,35 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         return MaterialDialog(
           canViewCosts: widget.companyContext.canViewFinancials,
           canEditCosts: widget.companyContext.canManageProjectFinancials,
-          onSave: ({
-            required name,
-            required category,
-            required quantity,
-            required unit,
-            required unitCost,
-            required supplier,
-            required status,
-          }) async {
-            await materialService.createMaterial(
-              companyId: widget.companyContext.companyId,
-              projectId: project.id,
-              name: name,
-              category: category,
-              quantity: quantity,
-              unit: unit,
-              unitCost: unitCost,
-              supplier: supplier,
-              status: status,
-            );
+          onSave:
+              ({
+                required name,
+                required category,
+                required quantity,
+                required unit,
+                required unitCost,
+                required supplier,
+                required status,
+              }) async {
+                await materialService.createMaterial(
+                  companyId: widget.companyContext.companyId,
+                  projectId: project.id,
+                  name: name,
+                  category: category,
+                  quantity: quantity,
+                  unit: unit,
+                  unitCost: unitCost,
+                  supplier: supplier,
+                  status: status,
+                );
 
-            await createProjectActivityLog(
-              activityType: 'material_created',
-              title: 'Material added: $name',
-              body:
-                  'Quantity: $quantity $unit • Category: $category • Status: ${_materialStatusLabel(status)}',
-            );
-          },
+                await createProjectActivityLog(
+                  activityType: 'material_created',
+                  title: 'Material added: $name',
+                  body:
+                      'Quantity: $quantity $unit • Category: $category • Status: ${_materialStatusLabel(status)}',
+                );
+              },
         );
       },
     );
@@ -915,26 +943,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           material: material,
           canViewCosts: widget.companyContext.canViewFinancials,
           canEditCosts: widget.companyContext.canManageProjectFinancials,
-          onSave: ({
-            required name,
-            required category,
-            required quantity,
-            required unit,
-            required unitCost,
-            required supplier,
-            required status,
-          }) async {
-            await materialService.updateMaterial(
-              id: material.id,
-              name: name,
-              category: category,
-              quantity: quantity,
-              unit: unit,
-              unitCost: unitCost,
-              supplier: supplier,
-              status: status,
-            );
-          },
+          onSave:
+              ({
+                required name,
+                required category,
+                required quantity,
+                required unit,
+                required unitCost,
+                required supplier,
+                required status,
+              }) async {
+                await materialService.updateMaterial(
+                  id: material.id,
+                  name: name,
+                  category: category,
+                  quantity: quantity,
+                  unit: unit,
+                  unitCost: unitCost,
+                  supplier: supplier,
+                  status: status,
+                );
+              },
         );
       },
     );
@@ -1075,8 +1104,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       if (!mounted) return;
 
       setState(() {
-        projectNotes =
-            projectNotes.where((projectNote) => projectNote.id != note.id).toList();
+        projectNotes = projectNotes
+            .where((projectNote) => projectNote.id != note.id)
+            .toList();
         isSaving = false;
       });
     } catch (error) {
@@ -1094,33 +1124,34 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       context: context,
       builder: (context) {
         return ProjectFileUploadDialog(
-          onUpload: ({
-            required pickedFile,
-            required fileType,
-            required description,
-          }) async {
-            final fileBytes = pickedFile.bytes;
+          onUpload:
+              ({
+                required pickedFile,
+                required fileType,
+                required description,
+              }) async {
+                final fileBytes = pickedFile.bytes;
 
-            if (fileBytes == null) {
-              throw Exception('Could not read selected file.');
-            }
+                if (fileBytes == null) {
+                  throw Exception('Could not read selected file.');
+                }
 
-            await projectFileService.uploadProjectFile(
-              companyId: widget.companyContext.companyId,
-              projectId: project.id,
-              fileName: pickedFile.name,
-              fileBytes: fileBytes,
-              fileType: fileType,
-              mimeType: null,
-              description: description,
-            );
+                await projectFileService.uploadProjectFile(
+                  companyId: widget.companyContext.companyId,
+                  projectId: project.id,
+                  fileName: pickedFile.name,
+                  fileBytes: fileBytes,
+                  fileType: fileType,
+                  mimeType: null,
+                  description: description,
+                );
 
-            await createProjectActivityLog(
-              activityType: 'file_uploaded',
-              title: 'File uploaded: ${pickedFile.name}',
-              body: description,
-            );
-          },
+                await createProjectActivityLog(
+                  activityType: 'file_uploaded',
+                  title: 'File uploaded: ${pickedFile.name}',
+                  body: description,
+                );
+              },
         );
       },
     );
@@ -1194,8 +1225,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canCreateTasks = widget.companyContext.canCreateTasks;
     final canCompleteTasks = widget.companyContext.canCompleteTasks;
     final canDeleteTasks = widget.companyContext.canDeleteTasks;
-    final canUpdateProjectStatus =
-        widget.companyContext.canUpdateProjectStatus;
+    final canUpdateProjectStatus = widget.companyContext.canUpdateProjectStatus;
 
     final content = isLoading
         ? const [
@@ -1207,269 +1237,267 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
           ]
         : errorMessage != null
-            ? [
-                SliverToBoxAdapter(
-                  child: _StateCard(
-                    title: 'Could not load project',
-                    body: errorMessage!,
+        ? [
+            SliverToBoxAdapter(
+              child: _StateCard(
+                title: 'Could not load project',
+                body: errorMessage!,
+              ),
+            ),
+          ]
+        : [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: _ProjectTitleBlock(project: project),
+              ),
+            ),
+            if (!canViewProjectFinancials)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: _ProjectProgressStatusCard(
+                    selectedStatus: selectedStatus,
+                    enabled: !isSaving && canUpdateProjectStatus,
+                    isSaving: isSaving,
+                    onStatusChanged: (value) {
+                      if (value == null) return;
+
+                      setState(() {
+                        selectedStatus = value;
+                      });
+                    },
+                    onSave: canUpdateProjectStatus
+                        ? saveProjectStatusOnly
+                        : null,
                   ),
                 ),
-              ]
-            : [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: _ProjectTitleBlock(project: project),
+              ),
+            if (canViewProjectFinancials &&
+                MediaQuery.of(context).size.shortestSide < 1000)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: _ProjectSummaryCard(
+                    contractAmountController: contractAmountController,
+                    selectedStatus: selectedStatus,
+                    onStatusChanged: isSaving
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+
+                            setState(() {
+                              selectedStatus = value;
+                            });
+                          },
+                    estimatedTotal: estimatedTotal,
+                    actualTotal: actualTotal,
+                    additionalActualTotal: additionalActualTotal,
+                    materialActualTotal: materialActualTotal,
+                    estimatedProfit: estimatedProfit,
+                    actualProfit: actualProfit,
+                    estimatedMarginPercent: estimatedMarginPercent,
+                    actualMarginPercent: actualMarginPercent,
+                    enabled: !isSaving && canManageProjectFinancials,
+                    onChanged: () => setState(() {}),
                   ),
                 ),
-                if (!canViewProjectFinancials)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: _ProjectProgressStatusCard(
-                        selectedStatus: selectedStatus,
-                        enabled: !isSaving && canUpdateProjectStatus,
-                        isSaving: isSaving,
-                        onStatusChanged: (value) {
-                          if (value == null) return;
+              ),
+            if (canViewProjectFinancials &&
+                MediaQuery.of(context).size.shortestSide >= 1000)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickySummaryHeader(
+                  child: _ProjectSummaryCard(
+                    contractAmountController: contractAmountController,
+                    selectedStatus: selectedStatus,
+                    onStatusChanged: isSaving
+                        ? null
+                        : (value) {
+                            if (value == null) return;
 
-                          setState(() {
-                            selectedStatus = value;
-                          });
-                        },
-                        onSave: canUpdateProjectStatus
-                            ? saveProjectStatusOnly
-                            : null,
-                      ),
-                    ),
+                            setState(() {
+                              selectedStatus = value;
+                            });
+                          },
+                    estimatedTotal: estimatedTotal,
+                    actualTotal: actualTotal,
+                    additionalActualTotal: additionalActualTotal,
+                    materialActualTotal: materialActualTotal,
+                    estimatedProfit: estimatedProfit,
+                    actualProfit: actualProfit,
+                    estimatedMarginPercent: estimatedMarginPercent,
+                    actualMarginPercent: actualMarginPercent,
+                    enabled: !isSaving && canManageProjectFinancials,
+                    onChanged: () => setState(() {}),
                   ),
-                  if (canViewProjectFinancials &&
-                      MediaQuery.of(context).size.shortestSide < 1000)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                        child: _ProjectSummaryCard(
-                          contractAmountController: contractAmountController,
-                          selectedStatus: selectedStatus,
-                          onStatusChanged: isSaving
-                              ? null
-                              : (value) {
-                                  if (value == null) return;
-
-                                  setState(() {
-                                    selectedStatus = value;
-                                  });
-                                },
-                          estimatedTotal: estimatedTotal,
-                          actualTotal: actualTotal,
-                          additionalActualTotal: additionalActualTotal,
-              materialActualTotal: materialActualTotal,
-                          estimatedProfit: estimatedProfit,
-                          actualProfit: actualProfit,
-                          estimatedMarginPercent: estimatedMarginPercent,
-                          actualMarginPercent: actualMarginPercent,
-                          enabled: !isSaving && canManageProjectFinancials,
-                          onChanged: () => setState(() {}),
-                        ),
-                      ),
-                    ),
-                  if (canViewProjectFinancials &&
-                      MediaQuery.of(context).size.shortestSide >= 1000)
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _StickySummaryHeader(
-                    child: _ProjectSummaryCard(
-                      contractAmountController: contractAmountController,
-                      selectedStatus: selectedStatus,
-                      onStatusChanged: isSaving
-                          ? null
-                          : (value) {
-                              if (value == null) return;
-
-                              setState(() {
-                                selectedStatus = value;
-                              });
-                            },
-                      estimatedTotal: estimatedTotal,
-                      actualTotal: actualTotal,
-                        additionalActualTotal: additionalActualTotal,
-              materialActualTotal: materialActualTotal,
-                      estimatedProfit: estimatedProfit,
-                      actualProfit: actualProfit,
-                      estimatedMarginPercent: estimatedMarginPercent,
-                      actualMarginPercent: actualMarginPercent,
-                      enabled: !isSaving && canManageProjectFinancials,
-                      onChanged: () => setState(() {}),
+                ),
+              ),
+            if (canViewProjectFinancials)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _StageCostsCard(
+                    stageCosts: stageCosts,
+                    stageCostItems: stageCostItems,
+                    descriptionControllers: descriptionControllers,
+                    estimatedControllers: estimatedControllers,
+                    actualControllers: actualControllers,
+                    notesControllers: notesControllers,
+                    peopleControllers: peopleControllers,
+                    hoursControllers: hoursControllers,
+                    hourlyRateControllers: hourlyRateControllers,
+                    flatFeeControllers: flatFeeControllers,
+                    concreteBagCountControllers: concreteBagCountControllers,
+                    concreteBagCostControllers: concreteBagCostControllers,
+                    rebarStickCountControllers: rebarStickCountControllers,
+                    rebarStickCostControllers: rebarStickCostControllers,
+                    anchorBoltCountControllers: anchorBoltCountControllers,
+                    anchorBoltCostControllers: anchorBoltCostControllers,
+                    fabricYardsControllers: fabricYardsControllers,
+                    fabricCostPerYardControllers: fabricCostPerYardControllers,
+                    hardwareCountControllers: hardwareCountControllers,
+                    hardwareCostEachControllers: hardwareCostEachControllers,
+                    cableFeetControllers: cableFeetControllers,
+                    cableCostPerFootControllers: cableCostPerFootControllers,
+                    itemDescriptionControllers: itemDescriptionControllers,
+                    itemActualCostControllers: itemActualCostControllers,
+                    completedValues: completedValues,
+                    useFlatFeeValues: useFlatFeeValues,
+                    concreteUnitTypeValues: concreteUnitTypeValues,
+                    enabled: !isSaving,
+                    onChanged: () => setState(() {}),
+                    onCompletedChanged: (stageCostId, value) {
+                      setState(() {
+                        completedValues[stageCostId] = value;
+                      });
+                    },
+                    onUseFlatFeeChanged: (stageCostId, value) {
+                      setState(() {
+                        useFlatFeeValues[stageCostId] = value;
+                      });
+                    },
+                    onConcreteUnitTypeChanged: (stageCostId, value) {
+                      setState(() {
+                        concreteUnitTypeValues[stageCostId] = value;
+                      });
+                    },
+                    onAddStageCostItem: addStageCostItem,
+                    onDeleteStageCostItem: deleteStageCostItem,
+                    onAddMiscellaneous: addMiscellaneousExpense,
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: ProjectMaterialsCard(
+                  materials: projectMaterials,
+                  enabled: !isSaving,
+                  canCreateMaterials: canCreateMaterials,
+                  canEditMaterials: canEditMaterials,
+                  canDeleteMaterials: canDeleteMaterials,
+                  canUpdateStatus: canUpdateMaterialStatus,
+                  canViewMaterialCosts: canViewProjectFinancials,
+                  canEditMaterialCosts: canManageProjectFinancials,
+                  onAddMaterial: addProjectMaterial,
+                  onEditMaterial: editProjectMaterial,
+                  onDeleteMaterial: deleteProjectMaterial,
+                  onUpdateMaterialStatus: updateProjectMaterialStatus,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: ProjectFilesCard(
+                  files: projectFiles,
+                  enabled: !isSaving,
+                  canUploadFile: canUploadProjectFiles,
+                  canDeleteFile: canDeleteProjectFiles,
+                  onUploadFile: uploadProjectFile,
+                  onOpenFile: openProjectFile,
+                  onDeleteFile: deleteProjectFile,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: ProjectNotesCard(
+                  notes: projectNotes,
+                  enabled: !isSaving,
+                  canAddNote: canAddProjectNotes,
+                  canDeleteNote: canDeleteProjectNotes,
+                  currentUserId: widget.companyContext.userId,
+                  onAddNote: addProjectNote,
+                  onDeleteNote: deleteProjectNote,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: ProjectActivityCard(
+                  activityLogs: projectActivityLogs,
+                  enabled: !isSaving,
+                  canDeleteActivity: canDeleteProjectActivityLogs,
+                  onDeleteActivity: deleteProjectActivityLog,
+                ),
+              ),
+            ),
+            // _ProjectTasksCard_INSERTED_MARKER
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: ProjectTasksCard(
+                  tasks: projectTasks,
+                  assignees: projectTaskAssignees,
+                  enabled: !isSaving,
+                  canAddTask: canCreateTasks,
+                  canCompleteTask: canCompleteTasks,
+                  canDeleteTask: canDeleteTasks,
+                  onAddTask: addProjectTask,
+                  onToggleTask: toggleProjectTask,
+                  onDeleteTask: deleteProjectTask,
+                ),
+              ),
+            ),
+            if (errorMessage != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                if (canViewProjectFinancials)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: _StageCostsCard(
-                      stageCosts: stageCosts,
-                      stageCostItems: stageCostItems,
-                      descriptionControllers: descriptionControllers,
-                      estimatedControllers: estimatedControllers,
-                      actualControllers: actualControllers,
-                      notesControllers: notesControllers,
-                      peopleControllers: peopleControllers,
-                      hoursControllers: hoursControllers,
-                      hourlyRateControllers: hourlyRateControllers,
-                      flatFeeControllers: flatFeeControllers,
-                      concreteBagCountControllers:
-                          concreteBagCountControllers,
-                      concreteBagCostControllers:
-                          concreteBagCostControllers,
-                      rebarStickCountControllers: rebarStickCountControllers,
-                      rebarStickCostControllers: rebarStickCostControllers,
-                      anchorBoltCountControllers: anchorBoltCountControllers,
-                      anchorBoltCostControllers: anchorBoltCostControllers,
-                      fabricYardsControllers: fabricYardsControllers,
-                      fabricCostPerYardControllers: fabricCostPerYardControllers,
-                      hardwareCountControllers: hardwareCountControllers,
-                      hardwareCostEachControllers: hardwareCostEachControllers,
-                      cableFeetControllers: cableFeetControllers,
-                      cableCostPerFootControllers: cableCostPerFootControllers,
-                      itemDescriptionControllers: itemDescriptionControllers,
-                      itemActualCostControllers: itemActualCostControllers,
-                      completedValues: completedValues,
-                      useFlatFeeValues: useFlatFeeValues,
-                      concreteUnitTypeValues: concreteUnitTypeValues,
-                      enabled: !isSaving,
-                      onChanged: () => setState(() {}),
-                      onCompletedChanged: (stageCostId, value) {
-                        setState(() {
-                          completedValues[stageCostId] = value;
-                        });
-                      },
-                      onUseFlatFeeChanged: (stageCostId, value) {
-                        setState(() {
-                          useFlatFeeValues[stageCostId] = value;
-                        });
-                      },
-                      onConcreteUnitTypeChanged: (stageCostId, value) {
-                        setState(() {
-                          concreteUnitTypeValues[stageCostId] = value;
-                        });
-                      },
-                      onAddStageCostItem: addStageCostItem,
-                      onDeleteStageCostItem: deleteStageCostItem,
-                        onAddMiscellaneous: addMiscellaneousExpense,
-                      ),
-                    ),
+              ),
+            if (canManageProjectFinancials)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                  child: ElevatedButton(
+                    onPressed: isSaving ? null : saveProjectDetail,
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Save Project Updates'),
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: ProjectMaterialsCard(
-                        materials: projectMaterials,
-                        enabled: !isSaving,
-                        canCreateMaterials: canCreateMaterials,
-                        canEditMaterials: canEditMaterials,
-                        canDeleteMaterials: canDeleteMaterials,
-                        canUpdateStatus: canUpdateMaterialStatus,
-                        canViewMaterialCosts: canViewProjectFinancials,
-                        canEditMaterialCosts: canManageProjectFinancials,
-                        onAddMaterial: addProjectMaterial,
-                        onEditMaterial: editProjectMaterial,
-                        onDeleteMaterial: deleteProjectMaterial,
-                        onUpdateMaterialStatus: updateProjectMaterialStatus,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: ProjectFilesCard(
-                        files: projectFiles,
-                        enabled: !isSaving,
-                        canUploadFile: canUploadProjectFiles,
-                        canDeleteFile: canDeleteProjectFiles,
-                        onUploadFile: uploadProjectFile,
-                        onOpenFile: openProjectFile,
-                        onDeleteFile: deleteProjectFile,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: ProjectNotesCard(
-                        notes: projectNotes,
-                        enabled: !isSaving,
-                        canAddNote: canAddProjectNotes,
-                        canDeleteNote: canDeleteProjectNotes,
-                        currentUserId: widget.companyContext.userId,
-                        onAddNote: addProjectNote,
-                        onDeleteNote: deleteProjectNote,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: ProjectActivityCard(
-                        activityLogs: projectActivityLogs,
-                        enabled: !isSaving,
-                        canDeleteActivity: canDeleteProjectActivityLogs,
-                        onDeleteActivity: deleteProjectActivityLog,
-                      ),
-                    ),
-                  ),
-                  // _ProjectTasksCard_INSERTED_MARKER
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: ProjectTasksCard(
-                        tasks: projectTasks,
-                        assignees: projectTaskAssignees,
-                        enabled: !isSaving,
-                        canAddTask: canCreateTasks,
-                        canCompleteTask: canCompleteTasks,
-                        canDeleteTask: canDeleteTasks,
-                        onAddTask: addProjectTask,
-                        onToggleTask: toggleProjectTask,
-                        onDeleteTask: deleteProjectTask,
-                      ),
-                    ),
-                  ),
-                if (errorMessage != null)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                if (canManageProjectFinancials)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                      child: ElevatedButton(
-                        onPressed: isSaving ? null : saveProjectDetail,
-                      child: isSaving
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Text('Save Project Updates'),
-                      ),
-                    ),
-                  ),
-              ];
+                ),
+              ),
+          ];
 
     return Scaffold(
       appBar: AppBar(
@@ -1525,9 +1553,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 }
 
 class _ProjectTitleBlock extends StatelessWidget {
-  const _ProjectTitleBlock({
-    required this.project,
-  });
+  const _ProjectTitleBlock({required this.project});
 
   final Project project;
 
@@ -1559,9 +1585,7 @@ class _ProjectTitleBlock extends StatelessWidget {
 }
 
 class _StickySummaryHeader extends SliverPersistentHeaderDelegate {
-  const _StickySummaryHeader({
-    required this.child,
-  });
+  const _StickySummaryHeader({required this.child});
 
   final Widget child;
 
@@ -1649,9 +1673,7 @@ class _ProjectProgressStatusCard extends StatelessWidget {
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             initialValue: selectedStatus,
-            decoration: const InputDecoration(
-              labelText: 'Project status',
-            ),
+            decoration: const InputDecoration(labelText: 'Project status'),
             items: const [
               DropdownMenuItem(value: 'contract', child: Text('Contract')),
               DropdownMenuItem(
@@ -1755,26 +1777,26 @@ class _ProjectStagePill extends StatelessWidget {
     final backgroundColor = isCurrent
         ? const Color(0xFFDBEAFE)
         : isPast
-            ? const Color(0xFFECFDF5)
-            : const Color(0xFFF8FAFC);
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFF8FAFC);
 
     final borderColor = isCurrent
         ? const Color(0xFF2563EB)
         : isPast
-            ? const Color(0xFF10B981)
-            : const Color(0xFFE2E8F0);
+        ? const Color(0xFF10B981)
+        : const Color(0xFFE2E8F0);
 
     final textColor = isCurrent
         ? const Color(0xFF1D4ED8)
         : isPast
-            ? const Color(0xFF047857)
-            : const Color(0xFF64748B);
+        ? const Color(0xFF047857)
+        : const Color(0xFF64748B);
 
     final icon = isCurrent
         ? Icons.radio_button_checked
         : isPast
-            ? Icons.check_circle_outline
-            : Icons.radio_button_unchecked;
+        ? Icons.check_circle_outline
+        : Icons.radio_button_unchecked;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -1852,9 +1874,7 @@ class _ProjectSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: selectedStatus,
-            decoration: const InputDecoration(
-              labelText: 'Project status',
-            ),
+            decoration: const InputDecoration(labelText: 'Project status'),
             items: const [
               DropdownMenuItem(value: 'contract', child: Text('Contract')),
               DropdownMenuItem(
@@ -1891,7 +1911,7 @@ class _ProjectSummaryCard extends StatelessWidget {
             estimatedTotal: estimatedTotal,
             actualTotal: actualTotal,
             additionalActualTotal: additionalActualTotal,
-                        materialActualTotal: materialActualTotal,
+            materialActualTotal: materialActualTotal,
             estimatedProfit: estimatedProfit,
             actualProfit: actualProfit,
             estimatedMarginPercent: estimatedMarginPercent,
@@ -2133,7 +2153,8 @@ class _StageCostsCard extends StatelessWidget {
   final VoidCallback onChanged;
   final void Function(String stageCostId, bool value) onCompletedChanged;
   final void Function(String stageCostId, bool value) onUseFlatFeeChanged;
-  final void Function(String stageCostId, String value) onConcreteUnitTypeChanged;
+  final void Function(String stageCostId, String value)
+  onConcreteUnitTypeChanged;
   final ValueChanged<ProjectStageCost> onAddStageCostItem;
   final ValueChanged<ProjectStageCostItem> onDeleteStageCostItem;
   final VoidCallback onAddMiscellaneous;
@@ -2158,74 +2179,103 @@ class _StageCostsCard extends StatelessWidget {
               ),
             )
           else
-            ...visibleStages.map(
-                (stageCost) {
-                  final itemsForStage = stageCostItems
-                      .where((item) => item.stageCostId == stageCost.id)
-                      .toList();
+            ...visibleStages.map((stageCost) {
+              final itemsForStage = stageCostItems
+                  .where((item) => item.stageCostId == stageCost.id)
+                  .toList();
 
-                  return _StageCostRow(
-                    stageCost: stageCost,
-                    stageCostItems: itemsForStage,
-                    descriptionController:
-                        descriptionControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    estimatedController: estimatedControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    actualController: actualControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    notesController: notesControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    peopleController: peopleControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    hoursController: hoursControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    hourlyRateController:
-                        hourlyRateControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    flatFeeController: flatFeeControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    concreteBagCountController:
-                        concreteBagCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    concreteBagCostController:
-                        concreteBagCostControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    rebarStickCountController:
-                        rebarStickCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    rebarStickCostController:
-                        rebarStickCostControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    anchorBoltCountController:
-                        anchorBoltCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    anchorBoltCostController:
-                        anchorBoltCostControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    fabricYardsController:
-                        fabricYardsControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    fabricCostPerYardController:
-                        fabricCostPerYardControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    hardwareCountController:
-                        hardwareCountControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    hardwareCostEachController:
-                        hardwareCostEachControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    cableFeetController:
-                        cableFeetControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    cableCostPerFootController:
-                        cableCostPerFootControllers.putIfAbsent(stageCost.id, () => TextEditingController()),
-                    itemDescriptionControllers: itemDescriptionControllers,
-                    itemActualCostControllers: itemActualCostControllers,
-                    isCompleted: completedValues[stageCost.id] ?? false,
-                    useFlatFee: useFlatFeeValues[stageCost.id] ?? false,
-                    concreteUnitType:
-                        concreteUnitTypeValues[stageCost.id] ?? 'bag',
-                    enabled: enabled,
-                    onChanged: onChanged,
-                    onCompletedChanged: (value) {
-                      onCompletedChanged(stageCost.id, value);
-                    },
-                    onUseFlatFeeChanged: (value) {
-                      onUseFlatFeeChanged(stageCost.id, value);
-                    },
-                    onConcreteUnitTypeChanged: (value) {
-                      onConcreteUnitTypeChanged(stageCost.id, value);
-                    },
-                    onAddExpense: () {
-                      onAddStageCostItem(stageCost);
-                    },
-                    onDeleteExpense: onDeleteStageCostItem,
-                  );
+              return _StageCostRow(
+                stageCost: stageCost,
+                stageCostItems: itemsForStage,
+                descriptionController: descriptionControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                estimatedController: estimatedControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                actualController: actualControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                notesController: notesControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                peopleController: peopleControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                hoursController: hoursControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                hourlyRateController: hourlyRateControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                flatFeeController: flatFeeControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                concreteBagCountController: concreteBagCountControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                concreteBagCostController: concreteBagCostControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                rebarStickCountController: rebarStickCountControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                rebarStickCostController: rebarStickCostControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                anchorBoltCountController: anchorBoltCountControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                anchorBoltCostController: anchorBoltCostControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                fabricYardsController: fabricYardsControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                fabricCostPerYardController: fabricCostPerYardControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                hardwareCountController: hardwareCountControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                hardwareCostEachController: hardwareCostEachControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                cableFeetController: cableFeetControllers.putIfAbsent(
+                  stageCost.id,
+                  () => TextEditingController(),
+                ),
+                cableCostPerFootController: cableCostPerFootControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                itemDescriptionControllers: itemDescriptionControllers,
+                itemActualCostControllers: itemActualCostControllers,
+                isCompleted: completedValues[stageCost.id] ?? false,
+                useFlatFee: useFlatFeeValues[stageCost.id] ?? false,
+                concreteUnitType: concreteUnitTypeValues[stageCost.id] ?? 'bag',
+                enabled: enabled,
+                onChanged: onChanged,
+                onCompletedChanged: (value) {
+                  onCompletedChanged(stageCost.id, value);
                 },
-              ),
-            const SizedBox(height: 8),
+                onUseFlatFeeChanged: (value) {
+                  onUseFlatFeeChanged(stageCost.id, value);
+                },
+                onConcreteUnitTypeChanged: (value) {
+                  onConcreteUnitTypeChanged(stageCost.id, value);
+                },
+                onAddExpense: () {
+                  onAddStageCostItem(stageCost);
+                },
+                onDeleteExpense: onDeleteStageCostItem,
+              );
+            }),
+          const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
@@ -2385,7 +2435,6 @@ class _StageCostRow extends StatelessWidget {
     return colors[stageColorIndex];
   }
 
-
   Color get _lupinusStageShellColor {
     switch (stageCost.stage) {
       case 'ordered_material':
@@ -2442,7 +2491,8 @@ class _StageCostRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLaborStage = stageCost.stage == 'structure_fabrication' ||
+    final isLaborStage =
+        stageCost.stage == 'structure_fabrication' ||
         stageCost.stage == 'sail_fabrication' ||
         stageCost.stage == 'installation';
 
@@ -2457,32 +2507,32 @@ class _StageCostRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            // _LUPINUS_STAGE_VISUAL_HEADER
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: _lupinusStageHeaderColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x24000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Text(
-                _lupinusStageTitle,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
+          // _LUPINUS_STAGE_VISUAL_HEADER
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: _lupinusStageHeaderColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x24000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
                 ),
+              ],
+            ),
+            child: Text(
+              _lupinusStageTitle,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
               ),
             ),
+          ),
 
           if (stageCost.isMiscellaneous)
             TextFormField(
@@ -2503,7 +2553,7 @@ class _StageCostRow extends StatelessWidget {
               enabled: enabled,
               onChanged: onChanged,
               hoursLabel: stageCost.stage == 'sail_fabrication'
-                  ? 'Manhours each'
+                  ? 'Hours each'
                   : 'Hours each',
             ),
           ] else if (stageCost.stage == 'footers') ...[
@@ -2542,18 +2592,10 @@ class _StageCostRow extends StatelessWidget {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: concreteUnitType,
-              decoration: const InputDecoration(
-                labelText: 'Concrete unit',
-              ),
+              decoration: const InputDecoration(labelText: 'Concrete unit'),
               items: const [
-                DropdownMenuItem(
-                  value: 'bag',
-                  child: Text('Bags'),
-                ),
-                DropdownMenuItem(
-                  value: 'pallet',
-                  child: Text('Pallets'),
-                ),
+                DropdownMenuItem(value: 'bag', child: Text('Bags')),
+                DropdownMenuItem(value: 'pallet', child: Text('Pallets')),
               ],
               onChanged: enabled
                   ? (value) {
@@ -2592,9 +2634,7 @@ class _StageCostRow extends StatelessWidget {
               controller: rebarStickCountController,
               enabled: enabled,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Sticks of rebar',
-              ),
+              decoration: const InputDecoration(labelText: 'Sticks of rebar'),
               onChanged: (_) => onChanged(),
             ),
             const SizedBox(height: 12),
@@ -2664,16 +2704,16 @@ class _StageCostRow extends StatelessWidget {
             useFlatFee: useFlatFee,
             concreteUnitType: concreteUnitType,
           ),
-            const SizedBox(height: 12),
-            _AdditionalExpenseRows(
-              items: stageCostItems,
-              descriptionControllers: itemDescriptionControllers,
-              actualCostControllers: itemActualCostControllers,
-              enabled: enabled,
-              onChanged: onChanged,
-              onAddExpense: onAddExpense,
-              onDeleteExpense: onDeleteExpense,
-            ),
+          const SizedBox(height: 12),
+          _AdditionalExpenseRows(
+            items: stageCostItems,
+            descriptionControllers: itemDescriptionControllers,
+            actualCostControllers: itemActualCostControllers,
+            enabled: enabled,
+            onChanged: onChanged,
+            onAddExpense: onAddExpense,
+            onDeleteExpense: onDeleteExpense,
+          ),
           const SizedBox(height: 12),
           TextFormField(
             controller: actualController,
@@ -2718,8 +2758,6 @@ class _StageCostRow extends StatelessWidget {
     );
   }
 }
-
-
 
 class _AdditionalExpenseRows extends StatelessWidget {
   const _AdditionalExpenseRows({
@@ -2806,8 +2844,7 @@ class _AdditionalExpenseRows extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed:
-                            enabled ? () => onDeleteExpense(item) : null,
+                        onPressed: enabled ? () => onDeleteExpense(item) : null,
                         icon: const Icon(Icons.delete_outline),
                         label: const Text('Delete Expense'),
                         style: OutlinedButton.styleFrom(
@@ -2975,10 +3012,7 @@ class _StageCalculatedTotals extends StatelessWidget {
             _CalcLine(label: 'Labor subtotal', value: laborTotal),
           ] else if (stageCost.stage == 'footers') ...[
             if (useFlatFee)
-              _CalcLine(
-                label: 'Footer labor flat fee',
-                value: flatFee,
-              )
+              _CalcLine(label: 'Footer labor flat fee', value: flatFee)
             else ...[
               _CalcLine(label: 'Footer labor subtotal', value: laborTotal),
               _CalcLine(
@@ -3069,7 +3103,6 @@ class _CalcLine extends StatelessWidget {
   }
 }
 
-
 class _LaborInputs extends StatelessWidget {
   const _LaborInputs({
     required this.peopleController,
@@ -3095,9 +3128,7 @@ class _LaborInputs extends StatelessWidget {
           controller: peopleController,
           enabled: enabled,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Number of people',
-          ),
+          decoration: const InputDecoration(labelText: 'Number of employees'),
           onChanged: (_) => onChanged(),
         ),
         const SizedBox(height: 12),
@@ -3105,9 +3136,7 @@ class _LaborInputs extends StatelessWidget {
           controller: hoursController,
           enabled: enabled,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: hoursLabel,
-          ),
+          decoration: InputDecoration(labelText: hoursLabel),
           onChanged: (_) => onChanged(),
         ),
         const SizedBox(height: 12),
@@ -3127,10 +3156,7 @@ class _LaborInputs extends StatelessWidget {
 }
 
 class _CardShell extends StatelessWidget {
-  const _CardShell({
-    required this.title,
-    required this.child,
-  });
+  const _CardShell({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -3169,10 +3195,7 @@ class _CardShell extends StatelessWidget {
 }
 
 class _StateCard extends StatelessWidget {
-  const _StateCard({
-    required this.title,
-    required this.body,
-  });
+  const _StateCard({required this.title, required this.body});
 
   final String title;
   final String body;
