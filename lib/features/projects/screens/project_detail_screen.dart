@@ -2784,6 +2784,9 @@ class _StageCostRow extends StatelessWidget {
             hardwareCostEachController: hardwareCostEachController,
             cableFeetController: cableFeetController,
             cableCostPerFootController: cableCostPerFootController,
+            installationMilesController: installationMilesController,
+            installationCostPerMileController:
+                installationCostPerMileController,
             estimatedController: estimatedController,
             useFlatFee: useFlatFee,
             concreteUnitType: concreteUnitType,
@@ -2985,6 +2988,8 @@ class _StageCalculatedTotals extends StatelessWidget {
     required this.hardwareCostEachController,
     required this.cableFeetController,
     required this.cableCostPerFootController,
+    required this.installationMilesController,
+    required this.installationCostPerMileController,
     required this.estimatedController,
     required this.useFlatFee,
     required this.concreteUnitType,
@@ -3007,6 +3012,8 @@ class _StageCalculatedTotals extends StatelessWidget {
   final TextEditingController hardwareCostEachController;
   final TextEditingController cableFeetController;
   final TextEditingController cableCostPerFootController;
+  final TextEditingController installationMilesController;
+  final TextEditingController installationCostPerMileController;
   final TextEditingController estimatedController;
   final bool useFlatFee;
   final String concreteUnitType;
@@ -3045,15 +3052,24 @@ class _StageCalculatedTotals extends StatelessWidget {
     final cableCostPerFoot = _parseMoney(cableCostPerFootController.text);
     final cableTotal = cableFeet * cableCostPerFoot;
 
+    final installationMiles = _parseMoney(installationMilesController.text);
+    final installationCostPerMile = _parseMoney(
+      installationCostPerMileController.text,
+    );
+    final mileageSubtotal = installationMiles * installationCostPerMile;
+
     final sailMaterialTotal = fabricTotal + hardwareTotal + cableTotal;
 
     final standardEstimated = _parseMoney(estimatedController.text);
 
     double stageTotal = standardEstimated;
 
-    if (stageCost.stage == 'structure_fabrication' ||
-        stageCost.stage == 'installation') {
+    if (stageCost.stage == 'structure_fabrication') {
       stageTotal = laborTotal;
+    }
+
+    if (stageCost.stage == 'installation') {
+      stageTotal = laborTotal + mileageSubtotal;
     }
 
     if (stageCost.stage == 'sail_fabrication') {
@@ -3094,6 +3110,8 @@ class _StageCalculatedTotals extends StatelessWidget {
           if (stageCost.stage == 'structure_fabrication' ||
               stageCost.stage == 'sail_fabrication') ...[
             _CalcLine(label: 'Labor subtotal', value: laborTotal),
+            if (stageCost.stage == 'installation')
+              _CalcLine(label: 'Mileage subtotal', value: mileageSubtotal),
           ] else if (stageCost.stage == 'footers') ...[
             if (useFlatFee)
               _CalcLine(label: 'Footer labor flat fee', value: flatFee)
