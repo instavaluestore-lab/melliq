@@ -61,9 +61,7 @@ class ProjectStageCostService {
         .order('created_at', ascending: true);
 
     return response
-        .map<ProjectStageCost>(
-          (item) => ProjectStageCost.fromMap(item),
-        )
+        .map<ProjectStageCost>((item) => ProjectStageCost.fromMap(item))
         .toList();
   }
 
@@ -149,39 +147,48 @@ class ProjectStageCostService {
     required double rebarStickCost,
     required int anchorBoltCount,
     required double anchorBoltCost,
+    required String? fabricType,
     required double fabricYards,
     required double fabricCostPerYard,
     required int hardwareCount,
     required double hardwareCostEach,
     required double cableFeet,
     required double cableCostPerFoot,
+    required double installationMiles,
+    required double installationCostPerMile,
   }) async {
-    await _supabase.from('project_stage_costs').update({
-      'description': _emptyToNull(description),
-      'estimated_cost': estimatedCost,
-      'actual_cost': actualCost,
-      'notes': _emptyToNull(notes),
-      'is_completed': isCompleted,
-      'completed_at': isCompleted ? DateTime.now().toIso8601String() : null,
-      'people_count': peopleCount,
-      'hours_each': hoursEach,
-      'cost_per_hour': costPerHour,
-      'flat_fee': flatFee,
-      'use_flat_fee': useFlatFee,
-      'concrete_bag_count': concreteBagCount,
-      'concrete_bag_cost': concreteBagCost,
-      'concrete_unit_type': concreteUnitType,
-      'rebar_stick_count': rebarStickCount,
-      'rebar_stick_cost': rebarStickCost,
-      'anchor_bolt_count': anchorBoltCount,
-      'anchor_bolt_cost': anchorBoltCost,
-      'fabric_yards': fabricYards,
-      'fabric_cost_per_yard': fabricCostPerYard,
-      'hardware_count': hardwareCount,
-      'hardware_cost_each': hardwareCostEach,
-      'cable_feet': cableFeet,
-      'cable_cost_per_foot': cableCostPerFoot,
-    }).eq('id', stageCostId);
+    await _supabase
+        .from('project_stage_costs')
+        .update({
+          'description': _emptyToNull(description),
+          'estimated_cost': estimatedCost,
+          'actual_cost': actualCost,
+          'notes': _emptyToNull(notes),
+          'is_completed': isCompleted,
+          'completed_at': isCompleted ? DateTime.now().toIso8601String() : null,
+          'people_count': peopleCount,
+          'hours_each': hoursEach,
+          'cost_per_hour': costPerHour,
+          'flat_fee': flatFee,
+          'use_flat_fee': useFlatFee,
+          'concrete_bag_count': concreteBagCount,
+          'concrete_bag_cost': concreteBagCost,
+          'concrete_unit_type': concreteUnitType,
+          'rebar_stick_count': rebarStickCount,
+          'rebar_stick_cost': rebarStickCost,
+          'anchor_bolt_count': anchorBoltCount,
+          'anchor_bolt_cost': anchorBoltCost,
+          'fabric_type': _emptyToNull(fabricType ?? ''),
+          'fabric_yards': fabricYards,
+          'fabric_cost_per_yard': fabricCostPerYard,
+          'hardware_count': hardwareCount,
+          'hardware_cost_each': hardwareCostEach,
+          'cable_feet': cableFeet,
+          'cable_cost_per_foot': cableCostPerFoot,
+          'installation_miles': installationMiles,
+          'installation_cost_per_mile': installationCostPerMile,
+        })
+        .eq('id', stageCostId);
   }
 
   Future<void> updateProjectFinancialTotals({
@@ -190,13 +197,16 @@ class ProjectStageCostService {
     required double estimatedCost,
     required double actualCost,
   }) async {
-    await _supabase.from('projects').update({
-      'contract_amount': contractAmount,
-      'estimated_cost': estimatedCost,
-      'actual_cost': actualCost,
-      'estimated_profit': contractAmount - estimatedCost,
-      'actual_profit': contractAmount - actualCost,
-    }).eq('id', projectId);
+    await _supabase
+        .from('projects')
+        .update({
+          'contract_amount': contractAmount,
+          'estimated_cost': estimatedCost,
+          'actual_cost': actualCost,
+          'estimated_profit': contractAmount - estimatedCost,
+          'actual_profit': contractAmount - actualCost,
+        })
+        .eq('id', projectId);
   }
 
   String? _emptyToNull(String value) {

@@ -22,12 +22,15 @@ class ProjectStageCost {
     required this.rebarStickCost,
     required this.anchorBoltCount,
     required this.anchorBoltCost,
+    this.fabricType,
     required this.fabricYards,
     required this.fabricCostPerYard,
     required this.hardwareCount,
     required this.hardwareCostEach,
     required this.cableFeet,
     required this.cableCostPerFoot,
+    required this.installationMiles,
+    required this.installationCostPerMile,
   });
 
   final String id;
@@ -56,12 +59,16 @@ class ProjectStageCost {
   final int anchorBoltCount;
   final double anchorBoltCost;
 
+  final String? fabricType;
   final double fabricYards;
   final double fabricCostPerYard;
   final int hardwareCount;
   final double hardwareCostEach;
   final double cableFeet;
   final double cableCostPerFoot;
+
+  final double installationMiles;
+  final double installationCostPerMile;
 
   bool get isMiscellaneous {
     return lineType == 'miscellaneous' || stage == 'miscellaneous';
@@ -156,6 +163,14 @@ class ProjectStageCost {
     return fabricCost + hardwareCost + cableCost;
   }
 
+  double get installationMileageCost {
+    if (stage != 'installation') {
+      return 0;
+    }
+
+    return installationMiles * installationCostPerMile;
+  }
+
   double get calculatedCost {
     if (isMilestoneOnly) {
       return 0;
@@ -171,6 +186,10 @@ class ProjectStageCost {
 
     if (stage == 'sail_fabrication') {
       return calculatedLaborCost + sailMaterialCost;
+    }
+
+    if (stage == 'installation') {
+      return calculatedLaborCost + installationMileageCost;
     }
 
     if (usesLaborFormula) {
@@ -204,12 +223,15 @@ class ProjectStageCost {
       rebarStickCost: _toDouble(map['rebar_stick_cost']),
       anchorBoltCount: _toInt(map['anchor_bolt_count']),
       anchorBoltCost: _toDouble(map['anchor_bolt_cost']),
+      fabricType: map['fabric_type'] as String?,
       fabricYards: _toDouble(map['fabric_yards']),
       fabricCostPerYard: _toDouble(map['fabric_cost_per_yard']),
       hardwareCount: _toInt(map['hardware_count']),
       hardwareCostEach: _toDouble(map['hardware_cost_each']),
       cableFeet: _toDouble(map['cable_feet']),
       cableCostPerFoot: _toDouble(map['cable_cost_per_foot']),
+      installationMiles: _toDouble(map['installation_miles']),
+      installationCostPerMile: _toDouble(map['installation_cost_per_mile']),
     );
   }
 

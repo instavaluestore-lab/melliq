@@ -490,6 +490,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           anchorBoltCost: _parseMoney(
             anchorBoltCostControllers[stageCost.id]?.text ?? '0',
           ),
+          fabricType: stageCost.fabricType,
           fabricYards: _parseMoney(
             fabricYardsControllers[stageCost.id]?.text ?? '0',
           ),
@@ -508,6 +509,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           cableCostPerFoot: _parseMoney(
             cableCostPerFootControllers[stageCost.id]?.text ?? '0',
           ),
+          installationMiles: stageCost.installationMiles,
+          installationCostPerMile: stageCost.installationCostPerMile,
           isCompleted: completedValues[stageCost.id] ?? false,
           peopleCount: _parseInt(peopleControllers[stageCost.id]?.text ?? '0'),
           hoursEach: _parseMoney(hoursControllers[stageCost.id]?.text ?? '0'),
