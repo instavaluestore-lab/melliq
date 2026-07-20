@@ -95,6 +95,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final Map<String, bool> completedValues = {};
   final Map<String, bool> useFlatFeeValues = {};
   final Map<String, String> concreteUnitTypeValues = {};
+  final Map<String, String?> fabricTypeValues = {};
 
   @override
   void initState() {
@@ -324,6 +325,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       completedValues[stageCost.id] = stageCost.isCompleted;
       useFlatFeeValues[stageCost.id] = stageCost.useFlatFee;
       concreteUnitTypeValues[stageCost.id] = stageCost.concreteUnitType;
+      fabricTypeValues[stageCost.id] = stageCost.fabricType;
     }
 
     for (final item in freshStageCostItems) {
@@ -1368,6 +1370,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     completedValues: completedValues,
                     useFlatFeeValues: useFlatFeeValues,
                     concreteUnitTypeValues: concreteUnitTypeValues,
+                    fabricTypeValues: fabricTypeValues,
                     enabled: !isSaving,
                     onChanged: () => setState(() {}),
                     onCompletedChanged: (stageCostId, value) {
@@ -2115,6 +2118,7 @@ class _StageCostsCard extends StatelessWidget {
     required this.completedValues,
     required this.useFlatFeeValues,
     required this.concreteUnitTypeValues,
+    required this.fabricTypeValues,
     required this.enabled,
     required this.onChanged,
     required this.onCompletedChanged,
@@ -2152,6 +2156,7 @@ class _StageCostsCard extends StatelessWidget {
   final Map<String, bool> completedValues;
   final Map<String, bool> useFlatFeeValues;
   final Map<String, String> concreteUnitTypeValues;
+  final Map<String, String?> fabricTypeValues;
   final bool enabled;
   final VoidCallback onChanged;
   final void Function(String stageCostId, bool value) onCompletedChanged;
