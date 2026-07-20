@@ -28,7 +28,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
-  final markupController = TextEditingController(text: '0');
+  final markupController = TextEditingController(text: '75');
   final taxController = TextEditingController(text: '0');
   final discountController = TextEditingController(text: '0');
   final notesController = TextEditingController();
@@ -51,6 +51,15 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   bool get isEditing => widget.quote != null;
 
   CompanyContext get companyContext => widget.companyContext;
+
+  void _adjustMarkup(double delta) {
+    final current = _parsePercent(markupController);
+    final next = (current + delta).clamp(0, 500).toDouble();
+
+    setState(() {
+      markupController.text = next.toStringAsFixed(0);
+    });
+  }
 
   bool get canConvertToProject {
     return isEditing &&
@@ -709,14 +718,41 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     runSpacing: 12,
                     children: [
                       SizedBox(
-                        width: 180,
-                        child: TextFormField(
-                          controller: markupController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Markup %',
-                            border: OutlineInputBorder(),
-                          ),
+                        width: 260,
+                        child: Row(
+                          children: [
+                            IconButton.filledTonal(
+                              tooltip: 'Decrease markup',
+                              onPressed: isSaving
+                                  ? null
+                                  : () {
+                                      _adjustMarkup(-1);
+                                    },
+                              icon: const Icon(Icons.remove),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                controller: markupController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Markup %',
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filledTonal(
+                              tooltip: 'Increase markup',
+                              onPressed: isSaving
+                                  ? null
+                                  : () {
+                                      _adjustMarkup(1);
+                                    },
+                              icon: const Icon(Icons.add),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(
