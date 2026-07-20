@@ -91,6 +91,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final Map<String, TextEditingController> hardwareCostEachControllers = {};
   final Map<String, TextEditingController> cableFeetControllers = {};
   final Map<String, TextEditingController> cableCostPerFootControllers = {};
+  final Map<String, TextEditingController> installationMilesControllers = {};
+  final Map<String, TextEditingController> installationCostPerMileControllers =
+      {};
 
   final Map<String, bool> completedValues = {};
   final Map<String, bool> useFlatFeeValues = {};
