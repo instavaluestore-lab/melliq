@@ -2615,6 +2615,29 @@ class _StageCostRow extends StatelessWidget {
                 onChanged: enabled ? onFabricTypeChanged : null,
               ),
             ],
+            if (stageCost.stage == 'installation') ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: installationMilesController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Installation miles',
+                ),
+                onChanged: (_) => onChanged(),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: installationCostPerMileController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cost per mile',
+                  prefixText: '\$',
+                ),
+                onChanged: (_) => onChanged(),
+              ),
+            ],
           ] else if (stageCost.stage == 'footers') ...[
             Material(
               color: Colors.transparent,
