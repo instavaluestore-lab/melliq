@@ -492,7 +492,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           anchorBoltCost: _parseMoney(
             anchorBoltCostControllers[stageCost.id]?.text ?? '0',
           ),
-          fabricType: stageCost.fabricType,
+          fabricType: fabricTypeValues[stageCost.id],
           fabricYards: _parseMoney(
             fabricYardsControllers[stageCost.id]?.text ?? '0',
           ),
@@ -2266,6 +2266,7 @@ class _StageCostsCard extends StatelessWidget {
                 isCompleted: completedValues[stageCost.id] ?? false,
                 useFlatFee: useFlatFeeValues[stageCost.id] ?? false,
                 concreteUnitType: concreteUnitTypeValues[stageCost.id] ?? 'bag',
+                fabricType: fabricTypeValues[stageCost.id],
                 enabled: enabled,
                 onChanged: onChanged,
                 onCompletedChanged: (value) {
@@ -2276,6 +2277,10 @@ class _StageCostsCard extends StatelessWidget {
                 },
                 onConcreteUnitTypeChanged: (value) {
                   onConcreteUnitTypeChanged(stageCost.id, value);
+                },
+                onFabricTypeChanged: (value) {
+                  fabricTypeValues[stageCost.id] = value;
+                  onChanged();
                 },
                 onAddExpense: () {
                   onAddStageCostItem(stageCost);
@@ -2327,11 +2332,13 @@ class _StageCostRow extends StatelessWidget {
     required this.isCompleted,
     required this.useFlatFee,
     required this.concreteUnitType,
+    required this.fabricType,
     required this.enabled,
     required this.onChanged,
     required this.onCompletedChanged,
     required this.onUseFlatFeeChanged,
     required this.onConcreteUnitTypeChanged,
+    required this.onFabricTypeChanged,
     required this.onAddExpense,
     required this.onDeleteExpense,
   });
@@ -2363,11 +2370,13 @@ class _StageCostRow extends StatelessWidget {
   final bool isCompleted;
   final bool useFlatFee;
   final String concreteUnitType;
+  final String? fabricType;
   final bool enabled;
   final VoidCallback onChanged;
   final ValueChanged<bool> onCompletedChanged;
   final ValueChanged<bool> onUseFlatFeeChanged;
   final ValueChanged<String> onConcreteUnitTypeChanged;
+  final ValueChanged<String?> onFabricTypeChanged;
   final VoidCallback onAddExpense;
   final ValueChanged<ProjectStageCostItem> onDeleteExpense;
 
@@ -2564,6 +2573,27 @@ class _StageCostRow extends StatelessWidget {
                   ? 'Hours each'
                   : 'Hours each',
             ),
+            if (stageCost.stage == 'sail_fabrication') ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: fabricType,
+                decoration: const InputDecoration(labelText: 'Fabric type'),
+                items: const [
+                  DropdownMenuItem(value: 'GP 340', child: Text('GP 340')),
+                  DropdownMenuItem(value: 'GP 430', child: Text('GP 430')),
+                  DropdownMenuItem(
+                    value: 'Sunbrella',
+                    child: Text('Sunbrella'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Serge Ferrari',
+                    child: Text('Serge Ferrari'),
+                  ),
+                  DropdownMenuItem(value: 'Custom', child: Text('Custom')),
+                ],
+                onChanged: enabled ? onFabricTypeChanged : null,
+              ),
+            ],
           ] else if (stageCost.stage == 'footers') ...[
             Material(
               color: Colors.transparent,
