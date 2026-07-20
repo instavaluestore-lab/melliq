@@ -2589,86 +2589,88 @@ class _StageCostRow extends StatelessWidget {
                 onChanged: onChanged,
                 hoursLabel: 'Hours each',
               ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: concreteUnitType,
-              decoration: const InputDecoration(labelText: 'Concrete unit'),
-              items: const [
-                DropdownMenuItem(value: 'bag', child: Text('Bags')),
-                DropdownMenuItem(value: 'pallet', child: Text('Pallets')),
-              ],
-              onChanged: enabled
-                  ? (value) {
-                      if (value == null) return;
-                      onConcreteUnitTypeChanged(value);
-                    }
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: concreteBagCountController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: concreteUnitType == 'pallet'
-                    ? 'Concrete pallets'
-                    : 'Concrete bags',
+            if (!useFlatFee) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: concreteUnitType,
+                decoration: const InputDecoration(labelText: 'Concrete unit'),
+                items: const [
+                  DropdownMenuItem(value: 'bag', child: Text('Bags')),
+                  DropdownMenuItem(value: 'pallet', child: Text('Pallets')),
+                ],
+                onChanged: enabled
+                    ? (value) {
+                        if (value == null) return;
+                        onConcreteUnitTypeChanged(value);
+                      }
+                    : null,
               ),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: concreteBagCostController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: concreteUnitType == 'pallet'
-                    ? 'Cost per pallet'
-                    : 'Cost per bag',
-                prefixText: '\$',
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: concreteBagCountController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: concreteUnitType == 'pallet'
+                      ? 'Concrete pallets'
+                      : 'Concrete bags',
+                ),
+                onChanged: (_) => onChanged(),
               ),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: rebarStickCountController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Sticks of rebar'),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: rebarStickCostController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Cost per rebar stick',
-                prefixText: '\$',
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: concreteBagCostController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: concreteUnitType == 'pallet'
+                      ? 'Cost per pallet'
+                      : 'Cost per bag',
+                  prefixText: '\$',
+                ),
+                onChanged: (_) => onChanged(),
               ),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: anchorBoltCountController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Anchor bolts / nuts amount',
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: rebarStickCountController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Sticks of rebar'),
+                onChanged: (_) => onChanged(),
               ),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: anchorBoltCostController,
-              enabled: enabled,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Cost per anchor bolt / nut',
-                prefixText: '\$',
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: rebarStickCostController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cost per rebar stick',
+                  prefixText: '\$',
+                ),
+                onChanged: (_) => onChanged(),
               ),
-              onChanged: (_) => onChanged(),
-            ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: anchorBoltCountController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Anchor bolts / nuts amount',
+                ),
+                onChanged: (_) => onChanged(),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: anchorBoltCostController,
+                enabled: enabled,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cost per anchor bolt / nut',
+                  prefixText: '\$',
+                ),
+                onChanged: (_) => onChanged(),
+              ),
+            ],
           ] else ...[
             TextFormField(
               controller: estimatedController,
