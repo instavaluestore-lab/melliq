@@ -1368,6 +1368,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     hardwareCostEachControllers: hardwareCostEachControllers,
                     cableFeetControllers: cableFeetControllers,
                     cableCostPerFootControllers: cableCostPerFootControllers,
+                    installationMilesControllers: installationMilesControllers,
+                    installationCostPerMileControllers:
+                        installationCostPerMileControllers,
                     itemDescriptionControllers: itemDescriptionControllers,
                     itemActualCostControllers: itemActualCostControllers,
                     completedValues: completedValues,
@@ -2116,6 +2119,8 @@ class _StageCostsCard extends StatelessWidget {
     required this.hardwareCostEachControllers,
     required this.cableFeetControllers,
     required this.cableCostPerFootControllers,
+    required this.installationMilesControllers,
+    required this.installationCostPerMileControllers,
     required this.itemDescriptionControllers,
     required this.itemActualCostControllers,
     required this.completedValues,
@@ -2154,6 +2159,8 @@ class _StageCostsCard extends StatelessWidget {
   final Map<String, TextEditingController> hardwareCostEachControllers;
   final Map<String, TextEditingController> cableFeetControllers;
   final Map<String, TextEditingController> cableCostPerFootControllers;
+  final Map<String, TextEditingController> installationMilesControllers;
+  final Map<String, TextEditingController> installationCostPerMileControllers;
   final Map<String, TextEditingController> itemDescriptionControllers;
   final Map<String, TextEditingController> itemActualCostControllers;
   final Map<String, bool> completedValues;
@@ -2264,6 +2271,13 @@ class _StageCostsCard extends StatelessWidget {
                 ),
                 cableCostPerFootController: cableCostPerFootControllers
                     .putIfAbsent(stageCost.id, () => TextEditingController()),
+                installationMilesController: installationMilesControllers
+                    .putIfAbsent(stageCost.id, () => TextEditingController()),
+                installationCostPerMileController:
+                    installationCostPerMileControllers.putIfAbsent(
+                      stageCost.id,
+                      () => TextEditingController(),
+                    ),
                 itemDescriptionControllers: itemDescriptionControllers,
                 itemActualCostControllers: itemActualCostControllers,
                 isCompleted: completedValues[stageCost.id] ?? false,
@@ -2330,6 +2344,8 @@ class _StageCostRow extends StatelessWidget {
     required this.hardwareCostEachController,
     required this.cableFeetController,
     required this.cableCostPerFootController,
+    required this.installationMilesController,
+    required this.installationCostPerMileController,
     required this.itemDescriptionControllers,
     required this.itemActualCostControllers,
     required this.isCompleted,
@@ -2368,6 +2384,8 @@ class _StageCostRow extends StatelessWidget {
   final TextEditingController hardwareCostEachController;
   final TextEditingController cableFeetController;
   final TextEditingController cableCostPerFootController;
+  final TextEditingController installationMilesController;
+  final TextEditingController installationCostPerMileController;
   final Map<String, TextEditingController> itemDescriptionControllers;
   final Map<String, TextEditingController> itemActualCostControllers;
   final bool isCompleted;
