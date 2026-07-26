@@ -40,7 +40,13 @@ for select
 to authenticated
 using (
   company_id is null
-  or public.is_active_company_member(company_id)
+  or exists (
+    select 1
+    from public.company_members cm
+    where cm.company_id = standard_structure_prices.company_id
+      and cm.user_id = auth.uid()
+      and cm.status = 'active'
+  )
 );
 
 drop policy if exists "Financial admins can manage standard structure prices"
@@ -52,11 +58,25 @@ for all
 to authenticated
 using (
   company_id is not null
-  and public.user_company_role(company_id) in ('primary_admin', 'cfo')
+  and exists (
+    select 1
+    from public.company_members cm
+    where cm.company_id = standard_structure_prices.company_id
+      and cm.user_id = auth.uid()
+      and cm.status = 'active'
+      and cm.role in ('primary_admin', 'cfo')
+  )
 )
 with check (
   company_id is not null
-  and public.user_company_role(company_id) in ('primary_admin', 'cfo')
+  and exists (
+    select 1
+    from public.company_members cm
+    where cm.company_id = standard_structure_prices.company_id
+      and cm.user_id = auth.uid()
+      and cm.status = 'active'
+      and cm.role in ('primary_admin', 'cfo')
+  )
 );
 
 insert into public.standard_structure_prices
