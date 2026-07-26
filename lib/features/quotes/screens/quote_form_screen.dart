@@ -8,7 +8,9 @@ import '../../projects/services/project_service.dart';
 import '../../audit/services/audit_log_service.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
+import '../models/standard_structure_price.dart';
 import '../services/quote_service.dart';
+import '../services/standard_structure_price_service.dart';
 
 class QuoteFormScreen extends StatefulWidget {
   const QuoteFormScreen({super.key, required this.companyContext, this.quote});
@@ -23,6 +25,7 @@ class QuoteFormScreen extends StatefulWidget {
 class _QuoteFormScreenState extends State<QuoteFormScreen> {
   late final CustomerService customerService;
   late final QuoteService quoteService;
+  late final StandardStructurePriceService standardStructurePriceService;
   late final ProjectService projectService;
   late final AuditLogService auditLogService;
 
@@ -47,6 +50,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   bool permitRequired = false;
   bool specialtyEquipmentRequired = false;
   List<_QuoteLineItemEditor> lineItems = [];
+  List<StandardStructurePrice> standardStructurePrices = [];
+  String? selectedStandardStructurePriceId;
 
   bool get isEditing => widget.quote != null;
 
@@ -72,6 +77,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     super.initState();
     customerService = CustomerService(Supabase.instance.client);
     quoteService = QuoteService(Supabase.instance.client);
+    standardStructurePriceService = StandardStructurePriceService(
+      Supabase.instance.client,
+    );
     projectService = ProjectService(Supabase.instance.client);
     auditLogService = AuditLogService(Supabase.instance.client);
     _loadInitialData();
@@ -103,6 +111,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         companyContext.companyId,
       );
 
+      final loadedStandardStructurePrices = await standardStructurePriceService
+          .getActivePrices(companyId: widget.companyContext.companyId);
+
       final quote = widget.quote;
       List<QuoteLineItem> loadedLineItems = [];
 
@@ -116,6 +127,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
       setState(() {
         customers = loadedCustomers;
+        standardStructurePrices = loadedStandardStructurePrices;
 
         if (quote != null) {
           selectedCustomerId = quote.customerId;
@@ -229,6 +241,73 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).pop(result);
+    });
+  }
+
+  List<StandardStructurePrice> get _pricesForSelectedStructure {
+    final structureType = selectedStructureType;
+    if (structureType == null || structureType.isEmpty) return [];
+
+    return standardStructurePrices
+        .where((price) => price.structureType == structureType)
+        .toList();
+  }
+
+  bool get _selectedStructureUsesStandardPricing {
+    return selectedStructureType == 'HR' ||
+        selectedStructureType == 'SP' ||
+        selectedStructureType == 'CL' ||
+        selectedStructureType == 'SWC';
+  }
+
+  void _applyStandardStructurePrice(String? priceId) {
+    if (priceId == null || priceId.isEmpty) {
+      setState(() {
+        selectedStandardStructurePriceId = null;
+      });
+      return;
+    }
+
+    StandardStructurePrice? selectedPrice;
+    for (final price in standardStructurePrices) {
+      if (price.id == priceId) {
+        selectedPrice = price;
+        break;
+      }
+    }
+
+    if (selectedPrice == null) return;
+
+    final editor = _QuoteLineItemEditor(
+      itemType: 'material',
+      nameController: TextEditingController(text: selectedPrice.quoteLineName),
+      descriptionController: TextEditingController(
+        text: 'Standard structure price selected from pricing table.',
+      ),
+      quantityController: TextEditingController(text: '1'),
+      unitController: TextEditingController(text: 'each'),
+      unitCostController: TextEditingController(text: '0'),
+      unitPriceController: TextEditingController(
+        text: selectedPrice.price.toStringAsFixed(2),
+      ),
+    );
+
+    final existingIndex = lineItems.indexWhere(
+      (item) =>
+          item.descriptionController.text.trim() ==
+          'Standard structure price selected from pricing table.',
+    );
+
+    setState(() {
+      selectedStandardStructurePriceId = priceId;
+
+      if (existingIndex >= 0) {
+        final oldItem = lineItems[existingIndex];
+        lineItems[existingIndex] = editor;
+        oldItem.dispose();
+      } else {
+        lineItems.insert(0, editor);
+      }
     });
   }
 
@@ -568,6 +647,10 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         child: Text('Cantilever Structure — CL'),
                       ),
                       DropdownMenuItem(
+                        value: 'SWC',
+                        child: Text('Slanted Wing Cantilever — SWC'),
+                      ),
+                      DropdownMenuItem(
                         value: 'CSTM',
                         child: Text('Custom — CSTM'),
                       ),
@@ -577,9 +660,34 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         : (value) {
                             setState(() {
                               selectedStructureType = value;
+                              selectedStandardStructurePriceId = null;
                             });
                           },
                   ),
+                  if (_selectedStructureUsesStandardPricing) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedStandardStructurePriceId,
+                      decoration: InputDecoration(
+                        labelText: 'Standard Size / Price',
+                        border: const OutlineInputBorder(),
+                        helperText: _pricesForSelectedStructure.isEmpty
+                            ? 'No standard prices found for this structure yet.'
+                            : 'Selecting a size adds or updates the structure line item.',
+                      ),
+                      items: _pricesForSelectedStructure
+                          .map(
+                            (price) => DropdownMenuItem(
+                              value: price.id,
+                              child: Text(price.displayLabel),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: isSaving || _pricesForSelectedStructure.isEmpty
+                          ? null
+                          : _applyStandardStructurePrice,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: selectedMountType,
