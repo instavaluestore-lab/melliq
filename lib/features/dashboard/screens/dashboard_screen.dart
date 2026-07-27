@@ -9,6 +9,7 @@ import '../../customers/screens/customers_list_screen.dart';
 import '../../leads/screens/leads_list_screen.dart';
 import '../../projects/screens/projects_list_screen.dart';
 import '../../quotes/screens/quotes_list_screen.dart';
+import '../../quotes/screens/quote_pricing_admin_screen.dart';
 import '../../projects/services/project_service.dart';
 import '../../team/screens/team_members_screen.dart';
 
@@ -75,9 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       (route) => false,
     );
   }
@@ -137,21 +136,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         value: canViewFinancials
             ? _formatMoney(metrics?.projectExpenses ?? 0)
             : 'Hidden',
-        subtitle: canViewFinancials ? 'Actual costs recorded' : 'Restricted by role',
+        subtitle: canViewFinancials
+            ? 'Actual costs recorded'
+            : 'Restricted by role',
       ),
       _DashboardStat(
         title: 'Open Project Profit',
         value: canViewFinancials
             ? _formatMoney(metrics?.totalOpenProjectProfit ?? 0)
             : 'Hidden',
-        subtitle: canViewFinancials ? 'Open actual profit' : 'Restricted by role',
+        subtitle: canViewFinancials
+            ? 'Open actual profit'
+            : 'Restricted by role',
       ),
       _DashboardStat(
         title: 'Annual Project Profit',
         value: canViewFinancials
             ? _formatMoney(metrics?.totalAnnualProjectProfit ?? 0)
             : 'Hidden',
-        subtitle: canViewFinancials ? 'This calendar year' : 'Restricted by role',
+        subtitle: canViewFinancials
+            ? 'This calendar year'
+            : 'Restricted by role',
       ),
     ];
 
@@ -162,10 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
-          TextButton(
-            onPressed: handleLogout,
-            child: const Text('Log Out'),
-          ),
+          TextButton(onPressed: handleLogout, child: const Text('Log Out')),
           const SizedBox(width: 12),
         ],
       ),
@@ -185,10 +187,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             const Text(
               'Track customers, leads, quotes, projects, materials, files, and profitability.',
-              style: TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
             ),
             const SizedBox(height: 24),
             if (isLoading)
@@ -209,90 +208,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
               )
             else
               _CompanyContextCard(companyContext: companyContext!),
-              if (companyContext != null) ...[
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    SizedBox(
-                      width: 180,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => LeadsListScreen(
-                                companyContext: companyContext!,
-                              ),
+            if (companyContext != null) ...[
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => LeadsListScreen(
+                              companyContext: companyContext!,
                             ),
-                          );
-                        },
-                        child: const Text('View Leads'),
-                      ),
+                          ),
+                        );
+                      },
+                      child: const Text('View Leads'),
                     ),
-                    SizedBox(
-                      width: 180,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => QuotesListScreen(
-                                companyContext: companyContext!,
-                              ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => QuotesListScreen(
+                              companyContext: companyContext!,
                             ),
-                          );
-                        },
-                        child: const Text('View Quotes'),
-                      ),
+                          ),
+                        );
+                      },
+                      child: const Text('View Quotes'),
                     ),
-                    SizedBox(
-                      width: 180,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CustomersListScreen(
-                                companyContext: companyContext!,
-                              ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => CustomersListScreen(
+                              companyContext: companyContext!,
                             ),
-                          );
-                        },
-                        child: const Text('View Customers'),
-                      ),
+                          ),
+                        );
+                      },
+                      child: const Text('View Customers'),
                     ),
-                    SizedBox(
-                      width: 180,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ProjectsListScreen(
-                                companyContext: companyContext!,
-                              ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ProjectsListScreen(
+                              companyContext: companyContext!,
                             ),
-                          );
-                        },
-                        child: const Text('View Projects'),
-                      ),
+                          ),
+                        );
+                      },
+                      child: const Text('View Projects'),
                     ),
-                    SizedBox(
-                      width: 180,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => TeamMembersScreen(
-                                companyContext: companyContext!,
-                              ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TeamMembersScreen(
+                              companyContext: companyContext!,
                             ),
-                          );
-                        },
-                        child: const Text('Manage Team'),
-                      ),
+                          ),
+                        );
+                      },
+                      child: const Text('Manage Team'),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              if (companyContext!.hasExecutiveAccess) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Admin Controls',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: 180,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => QuotePricingAdminScreen(
+                                    companyContext: companyContext!,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text('Quote Pricing'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
+            ],
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -323,9 +355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _CompanyContextCard extends StatelessWidget {
-  const _CompanyContextCard({
-    required this.companyContext,
-  });
+  const _CompanyContextCard({required this.companyContext});
 
   final CompanyContext companyContext;
 
@@ -344,18 +374,9 @@ class _CompanyContextCard extends StatelessWidget {
           runSpacing: 12,
           spacing: 12,
           children: [
-            _ContextChip(
-              label: 'Company',
-              value: companyContext.companyName,
-            ),
-            _ContextChip(
-              label: 'User',
-              value: companyContext.userEmail,
-            ),
-            _ContextChip(
-              label: 'Role',
-              value: companyContext.roleLabel,
-            ),
+            _ContextChip(label: 'Company', value: companyContext.companyName),
+            _ContextChip(label: 'User', value: companyContext.userEmail),
+            _ContextChip(label: 'Role', value: companyContext.roleLabel),
             _ContextChip(
               label: 'Expense Access',
               value: companyContext.canViewFinancials ? 'Allowed' : 'Hidden',
@@ -368,10 +389,7 @@ class _CompanyContextCard extends StatelessWidget {
 }
 
 class _ContextChip extends StatelessWidget {
-  const _ContextChip({
-    required this.label,
-    required this.value,
-  });
+  const _ContextChip({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -458,10 +476,7 @@ class _DashboardStat extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
             ),
           ],
         ),
@@ -471,10 +486,7 @@ class _DashboardStat extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.title,
-    required this.body,
-  });
+  const _InfoCard({required this.title, required this.body});
 
   final String title;
   final String body;
@@ -495,10 +507,7 @@ class _InfoCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
