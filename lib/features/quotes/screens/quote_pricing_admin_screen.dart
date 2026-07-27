@@ -68,6 +68,83 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     }
   }
 
+  Future<void> _editAddonPrice(QuoteAddonPrice price) async {
+    final controller = TextEditingController(
+      text: price.unitPrice.toStringAsFixed(2),
+    );
+
+    final newPrice = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit ${price.addonName}'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Unit Price',
+              prefixText: '\$',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final parsed = double.tryParse(
+                  controller.text.trim().replaceAll(',', ''),
+                );
+
+                if (parsed == null || parsed < 0) {
+                  return;
+                }
+
+                Navigator.of(context).pop(parsed);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (newPrice == null) return;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await quoteAddonPriceService.updatePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+        unitPrice: newPrice,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${price.addonName} updated.')));
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
   Map<String, List<StandardStructurePrice>> get _structurePricesByType {
     final grouped = <String, List<StandardStructurePrice>>{};
 
@@ -136,7 +213,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Primary Admin and CFO pricing controls. Editing will be added after this screen is verified.',
+              'Primary Admin and CFO pricing controls.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -163,6 +240,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
               _AddonPricingCard(
                 addonPrices: addonPrices,
                 formatMoney: _formatMoney,
+                onEditPrice: _editAddonPrice,
               ),
               const SizedBox(height: 16),
               _StructurePricingCard(
@@ -182,10 +260,12 @@ class _AddonPricingCard extends StatelessWidget {
   const _AddonPricingCard({
     required this.addonPrices,
     required this.formatMoney,
+    required this.onEditPrice,
   });
 
   final List<QuoteAddonPrice> addonPrices;
   final String Function(double value) formatMoney;
+  final ValueChanged<QuoteAddonPrice> onEditPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -208,9 +288,20 @@ class _AddonPricingCard extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: Text(price.addonName),
                   subtitle: Text('${price.addonType} • ${price.unit}'),
-                  trailing: Text(
-                    formatMoney(price.unitPrice),
-                    style: Theme.of(context).textTheme.titleMedium,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        formatMoney(price.unitPrice),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Edit price',
+                        onPressed: () => onEditPrice(price),
+                        icon: const Icon(Icons.edit),
+                      ),
+                    ],
                   ),
                 ),
               ),

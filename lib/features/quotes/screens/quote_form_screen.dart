@@ -151,7 +151,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           titleController.text = quote.title;
           markupController.text = quote.markupPercent.toStringAsFixed(2);
           taxController.text = quote.taxPercent.toStringAsFixed(2);
-          discountController.text = quote.discountAmount.toStringAsFixed(2);
+          discountController.text = '0';
           notesController.text = quote.notes ?? '';
           lineItems = loadedLineItems
               .map(_QuoteLineItemEditor.fromSavedLineItem)
@@ -173,10 +173,6 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         isLoading = false;
       });
     }
-  }
-
-  double _parseMoney(TextEditingController controller) {
-    return double.tryParse(controller.text.trim().replaceAll(',', '')) ?? 0;
   }
 
   double _parsePercent(TextEditingController controller) {
@@ -201,12 +197,26 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         .toList();
   }
 
+  double _discountAmount() {
+    final discountPercent = _parsePercent(discountController);
+    if (discountPercent <= 0) return 0;
+
+    final draftItems = _draftLineItems();
+    final subtotal = draftItems.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final markupAmount = subtotal * (_parsePercent(markupController) / 100);
+
+    return (subtotal + markupAmount) * (discountPercent / 100);
+  }
+
   QuoteTotals _totals() {
     return quoteService.calculateTotals(
       lineItems: _draftLineItems(),
       markupPercent: _parsePercent(markupController),
       taxPercent: _parsePercent(taxController),
-      discountAmount: _parseMoney(discountController),
+      discountAmount: _discountAmount(),
     );
   }
 
@@ -498,7 +508,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           status: selectedStatus,
           markupPercent: _parsePercent(markupController),
           taxPercent: _parsePercent(taxController),
-          discountAmount: _parseMoney(discountController),
+          discountAmount: _discountAmount(),
           lineItems: draftLineItems,
           structureType: selectedStructureType,
           mountType: selectedMountType,
@@ -516,7 +526,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           status: selectedStatus,
           markupPercent: _parsePercent(markupController),
           taxPercent: _parsePercent(taxController),
-          discountAmount: _parseMoney(discountController),
+          discountAmount: _discountAmount(),
           lineItems: draftLineItems,
           structureType: selectedStructureType,
           mountType: selectedMountType,
@@ -963,9 +973,45 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
-                    'Pricing',
+                    'Line Items',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...lineItems.map(
+                    (item) => _LineItemCard(
+                      item: item,
+                      onChanged: () => setState(() {}),
+                      onRemove: () => _removeLineItem(item),
+                      formatCurrency: _formatCurrency,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _addLineItem,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Line Item'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _TotalsCard(totals: totals, formatCurrency: _formatCurrency),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: notesController,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      labelText: 'Internal quote notes',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Pricing Adjustments',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -1015,63 +1061,76 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                       ),
                       SizedBox(
                         width: 180,
-                        child: TextFormField(
-                          controller: taxController,
-                          keyboardType: TextInputType.number,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: taxController.text.trim() == '8.25'
+                              ? '8.25'
+                              : '0',
                           decoration: const InputDecoration(
-                            labelText: 'Tax %',
+                            labelText: 'Tax',
                             border: OutlineInputBorder(),
                           ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: '0',
+                              child: Text('Tax Exempt'),
+                            ),
+                            DropdownMenuItem(
+                              value: '8.25',
+                              child: Text('8.25% Tax'),
+                            ),
+                          ],
+                          onChanged: isSaving
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    taxController.text = value;
+                                  });
+                                },
                         ),
                       ),
                       SizedBox(
                         width: 180,
-                        child: TextFormField(
-                          controller: discountController,
-                          keyboardType: TextInputType.number,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: discountController.text.trim().isEmpty
+                              ? '0'
+                              : discountController.text.trim(),
                           decoration: const InputDecoration(
-                            labelText: 'Discount \$',
+                            labelText: 'Discount',
                             border: OutlineInputBorder(),
                           ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: '0',
+                              child: Text('No Discount'),
+                            ),
+                            DropdownMenuItem(value: '1', child: Text('1%')),
+                            DropdownMenuItem(value: '2', child: Text('2%')),
+                            DropdownMenuItem(value: '3', child: Text('3%')),
+                            DropdownMenuItem(value: '4', child: Text('4%')),
+                            DropdownMenuItem(value: '5', child: Text('5%')),
+                            DropdownMenuItem(value: '6', child: Text('6%')),
+                            DropdownMenuItem(value: '7', child: Text('7%')),
+                            DropdownMenuItem(value: '8', child: Text('8%')),
+                            DropdownMenuItem(value: '9', child: Text('9%')),
+                            DropdownMenuItem(value: '10', child: Text('10%')),
+                            DropdownMenuItem(value: '11', child: Text('11%')),
+                            DropdownMenuItem(value: '12', child: Text('12%')),
+                            DropdownMenuItem(value: '13', child: Text('13%')),
+                            DropdownMenuItem(value: '14', child: Text('14%')),
+                            DropdownMenuItem(value: '15', child: Text('15%')),
+                          ],
+                          onChanged: isSaving
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(() {
+                                    discountController.text = value;
+                                  });
+                                },
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Line Items',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...lineItems.map(
-                    (item) => _LineItemCard(
-                      item: item,
-                      onChanged: () => setState(() {}),
-                      onRemove: () => _removeLineItem(item),
-                      formatCurrency: _formatCurrency,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _addLineItem,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Line Item'),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _TotalsCard(totals: totals, formatCurrency: _formatCurrency),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: notesController,
-                    minLines: 3,
-                    maxLines: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Internal quote notes',
-                      border: OutlineInputBorder(),
-                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(

@@ -274,21 +274,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: const Text('View Projects'),
                     ),
                   ),
-                  SizedBox(
-                    width: 180,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => TeamMembersScreen(
-                              companyContext: companyContext!,
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Manage Team'),
-                    ),
-                  ),
                 ],
               ),
               if (companyContext!.hasExecutiveAccess) ...[
@@ -304,20 +289,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 12),
-                        SizedBox(
-                          width: 180,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => QuotePricingAdminScreen(
-                                    companyContext: companyContext!,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Text('Quote Pricing'),
-                          ),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width: 180,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => QuotePricingAdminScreen(
+                                        companyContext: companyContext!,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Quote Pricing'),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 180,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => TeamMembersScreen(
+                                        companyContext: companyContext!,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Manage Team'),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
