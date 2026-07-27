@@ -9,8 +9,10 @@ import '../../audit/services/audit_log_service.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 import '../models/standard_structure_price.dart';
+import '../models/quote_addon_price.dart';
 import '../services/quote_service.dart';
 import '../services/standard_structure_price_service.dart';
+import '../services/quote_addon_price_service.dart';
 
 class QuoteFormScreen extends StatefulWidget {
   const QuoteFormScreen({super.key, required this.companyContext, this.quote});
@@ -26,6 +28,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   late final CustomerService customerService;
   late final QuoteService quoteService;
   late final StandardStructurePriceService standardStructurePriceService;
+  late final QuoteAddonPriceService quoteAddonPriceService;
   late final ProjectService projectService;
   late final AuditLogService auditLogService;
 
@@ -35,6 +38,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   final taxController = TextEditingController(text: '0');
   final discountController = TextEditingController(text: '0');
   final notesController = TextEditingController();
+  final footerQuantityController = TextEditingController(text: '1');
 
   bool isLoading = true;
   bool isSaving = false;
@@ -51,6 +55,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   bool specialtyEquipmentRequired = false;
   List<_QuoteLineItemEditor> lineItems = [];
   List<StandardStructurePrice> standardStructurePrices = [];
+  List<QuoteAddonPrice> quoteAddonPrices = [];
   String? selectedStandardStructurePriceId;
 
   bool get isEditing => widget.quote != null;
@@ -80,6 +85,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     standardStructurePriceService = StandardStructurePriceService(
       Supabase.instance.client,
     );
+    quoteAddonPriceService = QuoteAddonPriceService(Supabase.instance.client);
     projectService = ProjectService(Supabase.instance.client);
     auditLogService = AuditLogService(Supabase.instance.client);
     _loadInitialData();
@@ -92,6 +98,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     taxController.dispose();
     discountController.dispose();
     notesController.dispose();
+    footerQuantityController.dispose();
 
     for (final item in lineItems) {
       item.dispose();
@@ -114,6 +121,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       final loadedStandardStructurePrices = await standardStructurePriceService
           .getActivePrices(companyId: widget.companyContext.companyId);
 
+      final loadedQuoteAddonPrices = await quoteAddonPriceService
+          .getActivePrices(companyId: widget.companyContext.companyId);
+
       final quote = widget.quote;
       List<QuoteLineItem> loadedLineItems = [];
 
@@ -128,6 +138,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       setState(() {
         customers = loadedCustomers;
         standardStructurePrices = loadedStandardStructurePrices;
+        quoteAddonPrices = loadedQuoteAddonPrices;
 
         if (quote != null) {
           selectedCustomerId = quote.customerId;
@@ -258,6 +269,128 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         selectedStructureType == 'SP' ||
         selectedStructureType == 'CL' ||
         selectedStructureType == 'SWC';
+  }
+
+  QuoteAddonPrice? _addonPriceByKey(String addonKey) {
+    for (final price in quoteAddonPrices) {
+      if (price.addonKey == addonKey) return price;
+    }
+
+    return null;
+  }
+
+  double get _footerQuantity {
+    final parsed = double.tryParse(
+      footerQuantityController.text.trim().replaceAll(',', ''),
+    );
+
+    if (parsed == null || parsed <= 0) return 1;
+
+    return parsed;
+  }
+
+  void _upsertAddonLineItem({
+    required String marker,
+    required String itemType,
+    required String name,
+    required String unit,
+    required double quantity,
+    required double unitPrice,
+  }) {
+    final editor = _QuoteLineItemEditor(
+      itemType: itemType,
+      nameController: TextEditingController(text: name),
+      descriptionController: TextEditingController(text: marker),
+      quantityController: TextEditingController(
+        text: quantity.toStringAsFixed(0),
+      ),
+      unitController: TextEditingController(text: unit),
+      unitCostController: TextEditingController(text: '0'),
+      unitPriceController: TextEditingController(
+        text: unitPrice.toStringAsFixed(2),
+      ),
+    );
+
+    final existingIndex = lineItems.indexWhere(
+      (item) => item.descriptionController.text.trim() == marker,
+    );
+
+    if (existingIndex >= 0) {
+      final oldItem = lineItems[existingIndex];
+      lineItems[existingIndex] = editor;
+      oldItem.dispose();
+    } else {
+      lineItems.add(editor);
+    }
+  }
+
+  void _removeAddonLineItem(String marker) {
+    final index = lineItems.indexWhere(
+      (item) => item.descriptionController.text.trim() == marker,
+    );
+
+    if (index < 0) return;
+
+    final oldItem = lineItems.removeAt(index);
+    oldItem.dispose();
+
+    if (lineItems.isEmpty) {
+      lineItems.add(_QuoteLineItemEditor.empty(sortOrder: 0));
+    }
+  }
+
+  void _applyFooterPricing() {
+    const footer2x2Marker = 'Auto-priced footer: standard_2x2x5.';
+    const footer7x30Marker = 'Auto-priced footer: standard_7x30.';
+
+    _removeAddonLineItem(footer2x2Marker);
+    _removeAddonLineItem(footer7x30Marker);
+
+    final footerType = selectedFooterType;
+    if (footerType == null || footerType == 'custom') return;
+
+    final addonKey = footerType == 'standard_2x2x5'
+        ? 'footer_standard_2x2x5'
+        : footerType == 'standard_7x30'
+        ? 'footer_standard_7x30'
+        : null;
+
+    if (addonKey == null) return;
+
+    final price = _addonPriceByKey(addonKey);
+    if (price == null) return;
+
+    _upsertAddonLineItem(
+      marker: footerType == 'standard_2x2x5'
+          ? footer2x2Marker
+          : footer7x30Marker,
+      itemType: 'material',
+      name: price.addonName,
+      unit: price.unit,
+      quantity: _footerQuantity,
+      unitPrice: price.unitPrice,
+    );
+  }
+
+  void _applyMountPricing() {
+    const marker = 'Auto-priced mount: base_plate.';
+
+    if (selectedMountType != 'base_plate') {
+      _removeAddonLineItem(marker);
+      return;
+    }
+
+    final price = _addonPriceByKey('mount_base_plate');
+    if (price == null) return;
+
+    _upsertAddonLineItem(
+      marker: marker,
+      itemType: 'material',
+      name: price.addonName,
+      unit: price.unit,
+      quantity: 1,
+      unitPrice: price.unitPrice,
+    );
   }
 
   void _applyStandardStructurePrice(String? priceId) {
@@ -710,8 +843,24 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         : (value) {
                             setState(() {
                               selectedMountType = value;
+                              _applyMountPricing();
                             });
                           },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: footerQuantityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Footer Quantity',
+                      border: OutlineInputBorder(),
+                      helperText: 'Used for standard footer pricing.',
+                    ),
+                    onChanged: (_) {
+                      setState(() {
+                        _applyFooterPricing();
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -736,6 +885,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         : (value) {
                             setState(() {
                               selectedFooterType = value;
+                              _applyFooterPricing();
                             });
                           },
                   ),
