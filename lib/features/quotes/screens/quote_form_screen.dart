@@ -39,6 +39,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   final discountController = TextEditingController(text: '0');
   final notesController = TextEditingController();
   final footerQuantityController = TextEditingController(text: '1');
+  final highTensionPoleCountController = TextEditingController(text: '0');
+  final shadeSailCountController = TextEditingController(text: '0');
 
   bool isLoading = true;
   bool isSaving = false;
@@ -53,6 +55,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   String? selectedFooterType;
   bool permitRequired = false;
   bool specialtyEquipmentRequired = false;
+  bool sealedEngineeringRequired = false;
   List<_QuoteLineItemEditor> lineItems = [];
   List<StandardStructurePrice> standardStructurePrices = [];
   List<QuoteAddonPrice> quoteAddonPrices = [];
@@ -99,6 +102,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     discountController.dispose();
     notesController.dispose();
     footerQuantityController.dispose();
+    highTensionPoleCountController.dispose();
+    shadeSailCountController.dispose();
 
     for (final item in lineItems) {
       item.dispose();
@@ -148,6 +153,10 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           selectedFooterType = quote.footerType;
           permitRequired = quote.permitRequired;
           specialtyEquipmentRequired = quote.specialtyEquipmentRequired;
+          sealedEngineeringRequired = quote.sealedEngineeringRequired;
+          highTensionPoleCountController.text = quote.highTensionPoleCount
+              .toString();
+          shadeSailCountController.text = quote.shadeSailCount.toString();
           titleController.text = quote.title;
           markupController.text = quote.markupPercent.toStringAsFixed(2);
           taxController.text = quote.taxPercent.toStringAsFixed(2);
@@ -177,6 +186,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   double _parsePercent(TextEditingController controller) {
     return double.tryParse(controller.text.trim().replaceAll(',', '')) ?? 0;
+  }
+
+  int _parseIntController(TextEditingController controller) {
+    final parsed = int.tryParse(controller.text.trim().replaceAll(',', ''));
+    if (parsed == null || parsed < 0) return 0;
+
+    return parsed;
   }
 
   List<QuoteDraftLineItem> _draftLineItems() {
@@ -515,6 +531,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           footerType: selectedFooterType,
           permitRequired: permitRequired,
           specialtyEquipmentRequired: specialtyEquipmentRequired,
+          sealedEngineeringRequired: sealedEngineeringRequired,
+          highTensionPoleCount: _parseIntController(
+            highTensionPoleCountController,
+          ),
+          shadeSailCount: _parseIntController(shadeSailCountController),
           notes: notesController.text,
         );
       } else {
@@ -533,6 +554,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           footerType: selectedFooterType,
           permitRequired: permitRequired,
           specialtyEquipmentRequired: specialtyEquipmentRequired,
+          sealedEngineeringRequired: sealedEngineeringRequired,
+          highTensionPoleCount: _parseIntController(
+            highTensionPoleCountController,
+          ),
+          shadeSailCount: _parseIntController(shadeSailCountController),
           leadId: widget.quote!.leadId,
           notes: notesController.text,
         );
@@ -759,6 +785,48 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Quote title',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter a quote title';
+                      }
+
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedStatus,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'draft', child: Text('Draft')),
+                      DropdownMenuItem(value: 'sent', child: Text('Sent')),
+                      DropdownMenuItem(
+                        value: 'approved',
+                        child: Text('Approved'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'rejected',
+                        child: Text('Rejected'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        selectedStatus = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
                   const SizedBox(height: 16),
                   Text(
@@ -857,6 +925,39 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             });
                           },
                   ),
+                  if (selectedStructureType == 'HT') ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                          width: 180,
+                          child: TextFormField(
+                            controller: highTensionPoleCountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Pole Count',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 180,
+                          child: TextFormField(
+                            controller: shadeSailCountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Shade Sail Count',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: footerQuantityController,
@@ -932,48 +1033,23 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             });
                           },
                   ),
-
-                  TextFormField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Quote title',
-                      border: OutlineInputBorder(),
+                  SwitchListTile(
+                    value: sealedEngineeringRequired,
+                    title: const Text('Sealed Engineering Required'),
+                    subtitle: Text(
+                      sealedEngineeringRequired
+                          ? 'Sealed engineering will be required for this quote.'
+                          : 'No sealed engineering required.',
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Enter a quote title';
-                      }
+                    onChanged: isSaving
+                        ? null
+                        : (value) {
+                            setState(() {
+                              sealedEngineeringRequired = value;
+                            });
+                          },
+                  ),
 
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'draft', child: Text('Draft')),
-                      DropdownMenuItem(value: 'sent', child: Text('Sent')),
-                      DropdownMenuItem(
-                        value: 'approved',
-                        child: Text('Approved'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'rejected',
-                        child: Text('Rejected'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        selectedStatus = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
                   Text(
                     'Line Items',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(

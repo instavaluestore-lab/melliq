@@ -28,6 +28,9 @@ class Quote {
     this.footerType,
     this.permitRequired = false,
     this.specialtyEquipmentRequired = false,
+    this.sealedEngineeringRequired = false,
+    this.highTensionPoleCount = 0,
+    this.shadeSailCount = 0,
     this.createdBy,
     this.archivedAt,
     this.convertedProjectId,
@@ -60,6 +63,9 @@ class Quote {
   final String? footerType;
   final bool permitRequired;
   final bool specialtyEquipmentRequired;
+  final bool sealedEngineeringRequired;
+  final int highTensionPoleCount;
+  final int shadeSailCount;
   final String? createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -108,6 +114,9 @@ class Quote {
       footerType: footerType,
       permitRequired: permitRequired,
       specialtyEquipmentRequired: specialtyEquipmentRequired,
+      sealedEngineeringRequired: sealedEngineeringRequired,
+      highTensionPoleCount: highTensionPoleCount,
+      shadeSailCount: shadeSailCount,
       createdBy: createdBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -148,6 +157,10 @@ class Quote {
       permitRequired: map['permit_required'] as bool? ?? false,
       specialtyEquipmentRequired:
           map['specialty_equipment_required'] as bool? ?? false,
+      sealedEngineeringRequired:
+          map['sealed_engineering_required'] as bool? ?? false,
+      highTensionPoleCount: _toInt(map['high_tension_pole_count']),
+      shadeSailCount: _toInt(map['shade_sail_count']),
       createdBy: map['created_by'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -169,6 +182,14 @@ class Quote {
     if (value is num) return value.toDouble();
 
     return double.tryParse(value.toString()) ?? 0;
+  }
+
+  static int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+
+    return int.tryParse(value.toString()) ?? 0;
   }
 
   static String _titleCase(String value) {
