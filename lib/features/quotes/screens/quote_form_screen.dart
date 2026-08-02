@@ -1463,25 +1463,25 @@ class _QuotePricingPreviewCard extends StatelessWidget {
               runSpacing: 12,
               children: [
                 _TotalMetric(
-                  label: 'Subtotal',
+                  label: 'Base Price',
                   value: formatCurrency(totals.subtotal),
                 ),
                 _TotalMetric(
-                  label: 'Total',
+                  label: 'Customer Total',
                   value: formatCurrency(totals.totalAmount),
                   isBold: true,
                 ),
                 if (showInternalMetrics) ...[
                   _TotalMetric(
-                    label: 'Est. Cost',
+                    label: 'Cost Basis',
                     value: formatCurrency(totals.estimatedCost),
                   ),
                   _TotalMetric(
-                    label: 'Est. Profit',
+                    label: 'Estimated Profit',
                     value: formatCurrency(totals.estimatedProfit),
                   ),
                   _TotalMetric(
-                    label: 'Margin',
+                    label: 'Estimated Margin',
                     value:
                         '${totals.estimatedMarginPercent.toStringAsFixed(1)}%',
                   ),
@@ -1750,30 +1750,30 @@ class _TotalsCard extends StatelessWidget {
           runSpacing: 12,
           children: [
             _TotalMetric(
-              label: 'Subtotal',
+              label: 'Base Price',
               value: formatCurrency(totals.subtotal),
             ),
             _TotalMetric(
-              label: 'Markup',
+              label: 'Profit Markup',
               value: formatCurrency(totals.markupAmount),
             ),
             _TotalMetric(label: 'Tax', value: formatCurrency(totals.taxAmount)),
             _TotalMetric(
-              label: 'Total',
+              label: 'Customer Total',
               value: formatCurrency(totals.totalAmount),
               isBold: true,
             ),
             if (showInternalMetrics) ...[
               _TotalMetric(
-                label: 'Est. Cost',
+                label: 'Cost Basis',
                 value: formatCurrency(totals.estimatedCost),
               ),
               _TotalMetric(
-                label: 'Est. Profit',
+                label: 'Estimated Profit',
                 value: formatCurrency(totals.estimatedProfit),
               ),
               _TotalMetric(
-                label: 'Margin',
+                label: 'Estimated Margin',
                 value: '${totals.estimatedMarginPercent.toStringAsFixed(1)}%',
               ),
             ],
