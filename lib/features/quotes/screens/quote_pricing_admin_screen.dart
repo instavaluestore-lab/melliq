@@ -494,7 +494,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         return AlertDialog(
           title: const Text('Delete Size'),
           content: Text(
-            'Delete ${price.structureName} ${price.sizeOnlyLabel}? Company-added rows will be removed. Global default rows will be hidden for this company.',
+            'Delete ${price.structureName} ${price.sizeOnlyLabel} at ${_formatMoney(price.price)}? This will hide the row from quote pricing and keep it restorable in Hidden Pricing.',
           ),
           actions: [
             _dialogActionButton(
@@ -671,7 +671,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         return AlertDialog(
           title: const Text('Delete Add-On'),
           content: Text(
-            'Delete ${price.addonName}? Company-added rows will be removed. Global default rows will be hidden for this company.',
+            'Delete ${price.addonName} at ${_formatMoney(price.unitPrice)} per ${price.unit}? This will hide the row from quote pricing and keep it restorable in Hidden Pricing.',
           ),
           actions: [
             _dialogActionButton(
@@ -988,6 +988,12 @@ class _AddonPricingCard extends StatelessWidget {
                         tooltip: 'Edit price',
                         onPressed: () => onEditPrice(price),
                         icon: const Icon(Icons.edit),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () => onDeletePrice(price),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Delete'),
                       ),
                     ],
                   ),
