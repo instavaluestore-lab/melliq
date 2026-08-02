@@ -68,6 +68,20 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     }
   }
 
+  Widget _dialogActionButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 132,
+      height: 42,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        child: Text(label, textAlign: TextAlign.center),
+      ),
+    );
+  }
+
   Future<double?> _showMoneyDialog({
     required String title,
     required String label,
@@ -93,11 +107,12 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            _dialogActionButton(
+              label: 'Cancel',
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            _dialogActionButton(
+              label: 'Save',
               onPressed: () {
                 final parsed = double.tryParse(
                   controller.text.trim().replaceAll(',', ''),
@@ -107,7 +122,6 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
 
                 Navigator.of(context).pop(parsed);
               },
-              child: const Text('Save'),
             ),
           ],
         );
@@ -214,7 +228,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
@@ -291,6 +305,63 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${_structureLabel(structureType)} size added.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteStructurePrice(StandardStructurePrice price) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Size'),
+          content: Text(
+            'Delete ${price.structureName} ${price.sizeOnlyLabel}? Company-added rows will be removed. Global default rows will be hidden for this company.',
+          ),
+          actions: [
+            _dialogActionButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            _dialogActionButton(
+              label: 'Delete',
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await standardStructurePriceService.deletePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${price.structureName} ${price.sizeOnlyLabel} deleted.',
+          ),
         ),
       );
     } catch (error) {
@@ -460,6 +531,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 formatMoney: _formatMoney,
                 onEditPrice: _editStructurePrice,
                 onAddPrice: _addStructurePrice,
+                onDeletePrice: _deleteStructurePrice,
               ),
             ],
           ],
@@ -544,6 +616,7 @@ class _StructurePricingCard extends StatelessWidget {
     required this.formatMoney,
     required this.onEditPrice,
     required this.onAddPrice,
+    required this.onDeletePrice,
   });
 
   final Map<String, List<StandardStructurePrice>> groupedPrices;
@@ -551,6 +624,7 @@ class _StructurePricingCard extends StatelessWidget {
   final String Function(double value) formatMoney;
   final ValueChanged<StandardStructurePrice> onEditPrice;
   final ValueChanged<String> onAddPrice;
+  final ValueChanged<StandardStructurePrice> onDeletePrice;
 
   @override
   Widget build(BuildContext context) {
@@ -601,13 +675,21 @@ class _StructurePricingCard extends StatelessWidget {
                               '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft • ${formatMoney(price.price)}',
                             ),
                             const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: OutlinedButton.icon(
-                                onPressed: () => onEditPrice(price),
-                                icon: const Icon(Icons.edit),
-                                label: const Text('Edit Price'),
-                              ),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => onEditPrice(price),
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('Edit Price'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => onDeletePrice(price),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: const Text('Delete Size'),
+                                ),
+                              ],
                             ),
                           ],
                         ),

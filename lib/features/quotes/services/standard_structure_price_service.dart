@@ -14,8 +14,7 @@ class StandardStructurePriceService {
     var query = _supabase
         .from('standard_structure_prices')
         .select()
-        .or('company_id.is.null,company_id.eq.$companyId')
-        .eq('is_active', true);
+        .or('company_id.is.null,company_id.eq.$companyId');
 
     if (structureType != null && structureType.trim().isNotEmpty) {
       query = query.eq('structure_type', structureType.trim());
@@ -50,7 +49,7 @@ class StandardStructurePriceService {
       }
     }
 
-    final dedupedPrices = byKey.values.toList()
+    final dedupedPrices = byKey.values.where((price) => price.isActive).toList()
       ..sort((a, b) {
         final typeCompare = a.structureType.compareTo(b.structureType);
         if (typeCompare != 0) return typeCompare;
@@ -169,6 +168,47 @@ class StandardStructurePriceService {
       'price': unitPrice,
       'is_active': true,
       'sort_order': sortOrder,
+      'created_at': now,
+      'updated_at': now,
+    });
+  }
+
+  Future<void> deletePrice({
+    required String companyId,
+    required StandardStructurePrice price,
+  }) async {
+    final existingCompanyRows = await _supabase
+        .from('standard_structure_prices')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('structure_type', price.structureType)
+        .eq('length_feet', price.lengthFeet)
+        .eq('width_feet', price.widthFeet)
+        .limit(1);
+
+    final now = DateTime.now().toIso8601String();
+
+    if (existingCompanyRows.isNotEmpty) {
+      final existingId = existingCompanyRows.first['id'] as String;
+
+      await _supabase
+          .from('standard_structure_prices')
+          .delete()
+          .eq('id', existingId);
+
+      return;
+    }
+
+    await _supabase.from('standard_structure_prices').insert({
+      'company_id': companyId,
+      'structure_type': price.structureType,
+      'structure_name': price.structureName,
+      'size_label': price.sizeOnlyLabel,
+      'width_feet': price.widthFeet,
+      'length_feet': price.lengthFeet,
+      'price': price.price,
+      'is_active': false,
+      'sort_order': price.sortOrder,
       'created_at': now,
       'updated_at': now,
     });
