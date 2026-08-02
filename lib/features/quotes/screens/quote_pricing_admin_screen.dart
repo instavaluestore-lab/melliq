@@ -33,6 +33,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
   List<QuoteAddonPrice> addonPrices = [];
   List<QuoteAddonPrice> hiddenAddonPrices = [];
   List<RecordAuditLog> pricingAuditLogs = [];
+  Map<String, String> pricingAuditUserLabels = {};
 
   @override
   void initState() {
@@ -74,6 +75,10 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
           .where((log) => log.recordType.startsWith('pricing_'))
           .toList();
 
+      final loadedPricingAuditUserLabels = await _loadAuditUserLabels(
+        loadedPricingAuditLogs,
+      );
+
       if (!mounted) return;
 
       setState(() {
@@ -82,6 +87,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         addonPrices = loadedAddonPrices;
         hiddenAddonPrices = loadedHiddenAddonPrices;
         pricingAuditLogs = loadedPricingAuditLogs;
+        pricingAuditUserLabels = loadedPricingAuditUserLabels;
         isLoading = false;
       });
     } catch (error) {
@@ -92,6 +98,55 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         isLoading = false;
       });
     }
+  }
+
+  Future<Map<String, String>> _loadAuditUserLabels(
+    List<RecordAuditLog> logs,
+  ) async {
+    final userIds = logs
+        .map((log) => log.createdBy)
+        .whereType<String>()
+        .where((userId) => userId.trim().isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (userIds.isEmpty) return {};
+
+    final rows = await Supabase.instance.client
+        .from('company_members')
+        .select(
+          'user_id, profiles!company_members_user_id_fkey(full_name, email)',
+        )
+        .eq('company_id', widget.companyContext.companyId)
+        .inFilter('user_id', userIds);
+
+    final labels = <String, String>{};
+
+    for (final row in rows) {
+      final map = Map<String, dynamic>.from(row);
+      final userId = map['user_id'] as String?;
+      final profile = map['profiles'] == null
+          ? null
+          : Map<String, dynamic>.from(map['profiles'] as Map);
+
+      if (userId == null || profile == null) continue;
+
+      final fullName = (profile['full_name'] as String?)?.trim();
+      final email = (profile['email'] as String?)?.trim();
+
+      if (fullName != null &&
+          fullName.isNotEmpty &&
+          email != null &&
+          email.isNotEmpty) {
+        labels[userId] = '$fullName • $email';
+      } else if (fullName != null && fullName.isNotEmpty) {
+        labels[userId] = fullName;
+      } else if (email != null && email.isNotEmpty) {
+        labels[userId] = email;
+      }
+    }
+
+    return labels;
   }
 
   Widget _dialogActionButton({
@@ -863,7 +918,10 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 onRestoreAddonPrice: _restoreAddonPrice,
               ),
               const SizedBox(height: 16),
-              _PricingAuditCard(logs: pricingAuditLogs),
+              _PricingAuditCard(
+                logs: pricingAuditLogs,
+                userLabels: pricingAuditUserLabels,
+              ),
             ],
           ],
         ),
@@ -943,9 +1001,10 @@ class _AddonPricingCard extends StatelessWidget {
 }
 
 class _PricingAuditCard extends StatelessWidget {
-  const _PricingAuditCard({required this.logs});
+  const _PricingAuditCard({required this.logs, required this.userLabels});
 
   final List<RecordAuditLog> logs;
+  final Map<String, String> userLabels;
 
   String _formatDateTime(DateTime value) {
     final local = value.toLocal();
@@ -963,13 +1022,63 @@ class _PricingAuditCard extends StatelessWidget {
       return 'Unknown user';
     }
 
+    final label = userLabels[createdBy];
+    if (label != null && label.trim().isNotEmpty) {
+      return label;
+    }
+
     if (createdBy.length <= 8) return createdBy;
 
     return '${createdBy.substring(0, 8)}…';
   }
 
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'add':
+        return 'Added';
+      case 'edit':
+        return 'Edited';
+      case 'delete':
+        return 'Deleted';
+      case 'restore':
+        return 'Restored';
+      default:
+        return action.isEmpty
+            ? 'Changed'
+            : '${action[0].toUpperCase()}${action.substring(1)}';
+    }
+  }
+
+  String _recordTypeLabel(String recordType) {
+    switch (recordType) {
+      case 'pricing_standard_structure':
+        return 'Standard Structure';
+      case 'pricing_quote_addon':
+        return 'Footer / Mount Add-On';
+      default:
+        return recordType.replaceAll('_', ' ');
+    }
+  }
+
+  IconData _actionIcon(String action) {
+    switch (action) {
+      case 'add':
+        return Icons.add_circle_outline;
+      case 'edit':
+        return Icons.edit_outlined;
+      case 'delete':
+        return Icons.delete_outline;
+      case 'restore':
+        return Icons.restore;
+      default:
+        return Icons.history;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final visibleLogs = logs.take(25).toList();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -989,23 +1098,76 @@ class _PricingAuditCard extends StatelessWidget {
             if (logs.isEmpty)
               const Text('No pricing audit logs yet.')
             else
-              ...logs
-                  .take(25)
-                  .map(
-                    (log) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(log.summary),
-                      subtitle: Text(
-                        '${log.action} • ${log.recordType} • ${_formatDateTime(log.createdAt)} • ${_createdByLabel(log.createdBy)}',
-                      ),
-                      trailing: log.fieldName == null
-                          ? null
-                          : Text(
-                              log.fieldName!,
-                              style: Theme.of(context).textTheme.labelMedium,
-                            ),
-                    ),
+              ...visibleLogs.map((log) {
+                final actionLabel = _actionLabel(log.action);
+                final recordTypeLabel = _recordTypeLabel(log.recordType);
+
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(_actionIcon(log.action), size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Chip(
+                                  label: Text(actionLabel),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                Text(
+                                  recordTypeLabel,
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              log.summary,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${_formatDateTime(log.createdAt)} • ${_createdByLabel(log.createdBy)}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if (log.fieldName != null ||
+                                log.oldValue != null ||
+                                log.newValue != null) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                [
+                                  if (log.fieldName != null)
+                                    'Field: ${log.fieldName}',
+                                  if (log.oldValue != null)
+                                    'Old: ${log.oldValue}',
+                                  if (log.newValue != null)
+                                    'New: ${log.newValue}',
+                                ].join(' • '),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),
