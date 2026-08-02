@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../audit/models/record_audit_log.dart';
+import '../../audit/services/audit_log_service.dart';
 import '../../company/models/company_context.dart';
 import '../models/quote_addon_price.dart';
 import '../models/standard_structure_price.dart';
@@ -20,6 +22,7 @@ class QuotePricingAdminScreen extends StatefulWidget {
 class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
   late final StandardStructurePriceService standardStructurePriceService;
   late final QuoteAddonPriceService quoteAddonPriceService;
+  late final AuditLogService auditLogService;
 
   bool isLoading = true;
   bool showHiddenPricing = false;
@@ -29,6 +32,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
   List<StandardStructurePrice> hiddenStructurePrices = [];
   List<QuoteAddonPrice> addonPrices = [];
   List<QuoteAddonPrice> hiddenAddonPrices = [];
+  List<RecordAuditLog> pricingAuditLogs = [];
 
   @override
   void initState() {
@@ -37,6 +41,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       Supabase.instance.client,
     );
     quoteAddonPriceService = QuoteAddonPriceService(Supabase.instance.client);
+    auditLogService = AuditLogService(Supabase.instance.client);
     _loadPricing();
   }
 
@@ -60,6 +65,15 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       final loadedHiddenAddonPrices = await quoteAddonPriceService
           .getHiddenPrices(companyId: widget.companyContext.companyId);
 
+      final loadedAuditLogs = await auditLogService.getRecentLogsForCompany(
+        companyId: widget.companyContext.companyId,
+        limit: 100,
+      );
+
+      final loadedPricingAuditLogs = loadedAuditLogs
+          .where((log) => log.recordType.startsWith('pricing_'))
+          .toList();
+
       if (!mounted) return;
 
       setState(() {
@@ -67,6 +81,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         hiddenStructurePrices = loadedHiddenStructurePrices;
         addonPrices = loadedAddonPrices;
         hiddenAddonPrices = loadedHiddenAddonPrices;
+        pricingAuditLogs = loadedPricingAuditLogs;
         isLoading = false;
       });
     } catch (error) {
@@ -91,6 +106,40 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         child: Text(label, textAlign: TextAlign.center),
       ),
     );
+  }
+
+  Future<void> _logPricingAction({
+    required String recordType,
+    required String recordId,
+    required String action,
+    required String summary,
+    String? fieldName,
+    String? oldValue,
+    String? newValue,
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    try {
+      await auditLogService.logAction(
+        companyId: widget.companyContext.companyId,
+        recordType: recordType,
+        recordId: recordId,
+        action: action,
+        summary: summary,
+        fieldName: fieldName,
+        oldValue: oldValue,
+        newValue: newValue,
+        metadata: metadata,
+      );
+    } catch (_) {
+      // Pricing changes should not fail just because audit logging failed.
+    }
+  }
+
+  String _pricingAuditRecordId({
+    required String itemType,
+    required String itemKey,
+  }) {
+    return '$itemType:$itemKey';
   }
 
   Future<double?> _showMoneyDialog({
@@ -163,6 +212,22 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         companyId: widget.companyContext.companyId,
         price: price,
         unitPrice: newPrice,
+      );
+
+      await _logPricingAction(
+        recordType: 'pricing_standard_structure',
+        recordId: price.id,
+        action: 'edit',
+        summary:
+            'Updated ${price.structureName} ${price.sizeOnlyLabel} from ${_formatMoney(price.price)} to ${_formatMoney(newPrice)}.',
+        fieldName: 'price',
+        oldValue: _formatMoney(price.price),
+        newValue: _formatMoney(newPrice),
+        metadata: {
+          'structure_type': price.structureType,
+          'structure_name': price.structureName,
+          'size_label': price.sizeOnlyLabel,
+        },
       );
 
       await _loadPricing();
@@ -328,6 +393,26 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         sortOrder: nextSortOrder,
       );
 
+      await _logPricingAction(
+        recordType: 'pricing_standard_structure',
+        recordId: _pricingAuditRecordId(
+          itemType: 'standard_structure',
+          itemKey:
+              '$structureType:${result.lengthFeet.toString()}:${result.widthFeet.toString()}',
+        ),
+        action: 'add',
+        summary:
+            'Added ${_structureLabel(structureType)} ${result.lengthFeet.toStringAsFixed(0)} ft × ${result.widthFeet.toStringAsFixed(0)} ft at ${_formatMoney(result.price)}.',
+        fieldName: 'price',
+        newValue: _formatMoney(result.price),
+        metadata: {
+          'structure_type': structureType,
+          'structure_name': _structureName(structureType),
+          'length_feet': result.lengthFeet,
+          'width_feet': result.widthFeet,
+        },
+      );
+
       await _loadPricing();
 
       if (!mounted) return;
@@ -383,6 +468,22 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         price: price,
       );
 
+      await _logPricingAction(
+        recordType: 'pricing_standard_structure',
+        recordId: price.id,
+        action: 'delete',
+        summary: 'Deleted ${price.structureName} ${price.sizeOnlyLabel}.',
+        fieldName: 'is_active',
+        oldValue: 'true',
+        newValue: 'false',
+        metadata: {
+          'structure_type': price.structureType,
+          'structure_name': price.structureName,
+          'size_label': price.sizeOnlyLabel,
+          'price': price.price,
+        },
+      );
+
       await _loadPricing();
 
       if (!mounted) return;
@@ -414,6 +515,22 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       await standardStructurePriceService.restorePrice(
         companyId: widget.companyContext.companyId,
         price: price,
+      );
+
+      await _logPricingAction(
+        recordType: 'pricing_standard_structure',
+        recordId: price.id,
+        action: 'restore',
+        summary: 'Restored ${price.structureName} ${price.sizeOnlyLabel}.',
+        fieldName: 'is_active',
+        oldValue: 'false',
+        newValue: 'true',
+        metadata: {
+          'structure_type': price.structureType,
+          'structure_name': price.structureName,
+          'size_label': price.sizeOnlyLabel,
+          'price': price.price,
+        },
       );
 
       await _loadPricing();
@@ -456,6 +573,23 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         companyId: widget.companyContext.companyId,
         price: price,
         unitPrice: newPrice,
+      );
+
+      await _logPricingAction(
+        recordType: 'pricing_quote_addon',
+        recordId: price.id,
+        action: 'edit',
+        summary:
+            'Updated ${price.addonName} from ${_formatMoney(price.unitPrice)} to ${_formatMoney(newPrice)}.',
+        fieldName: 'unit_price',
+        oldValue: _formatMoney(price.unitPrice),
+        newValue: _formatMoney(newPrice),
+        metadata: {
+          'addon_key': price.addonKey,
+          'addon_name': price.addonName,
+          'addon_type': price.addonType,
+          'unit': price.unit,
+        },
       );
 
       await _loadPricing();
@@ -511,6 +645,23 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         price: price,
       );
 
+      await _logPricingAction(
+        recordType: 'pricing_quote_addon',
+        recordId: price.id,
+        action: 'delete',
+        summary: 'Deleted ${price.addonName}.',
+        fieldName: 'is_active',
+        oldValue: 'true',
+        newValue: 'false',
+        metadata: {
+          'addon_key': price.addonKey,
+          'addon_name': price.addonName,
+          'addon_type': price.addonType,
+          'unit': price.unit,
+          'unit_price': price.unitPrice,
+        },
+      );
+
       await _loadPricing();
 
       if (!mounted) return;
@@ -538,6 +689,23 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       await quoteAddonPriceService.restorePrice(
         companyId: widget.companyContext.companyId,
         price: price,
+      );
+
+      await _logPricingAction(
+        recordType: 'pricing_quote_addon',
+        recordId: price.id,
+        action: 'restore',
+        summary: 'Restored ${price.addonName}.',
+        fieldName: 'is_active',
+        oldValue: 'false',
+        newValue: 'true',
+        metadata: {
+          'addon_key': price.addonKey,
+          'addon_name': price.addonName,
+          'addon_type': price.addonType,
+          'unit': price.unit,
+          'unit_price': price.unitPrice,
+        },
       );
 
       await _loadPricing();
@@ -694,6 +862,8 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 onRestoreStructurePrice: _restoreStructurePrice,
                 onRestoreAddonPrice: _restoreAddonPrice,
               ),
+              const SizedBox(height: 16),
+              _PricingAuditCard(logs: pricingAuditLogs),
             ],
           ],
         ),
@@ -765,6 +935,77 @@ class _AddonPricingCard extends StatelessWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PricingAuditCard extends StatelessWidget {
+  const _PricingAuditCard({required this.logs});
+
+  final List<RecordAuditLog> logs;
+
+  String _formatDateTime(DateTime value) {
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  String _createdByLabel(String? createdBy) {
+    if (createdBy == null || createdBy.trim().isEmpty) {
+      return 'Unknown user';
+    }
+
+    if (createdBy.length <= 8) return createdBy;
+
+    return '${createdBy.substring(0, 8)}…';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pricing Audit',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Recent pricing changes for this company.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            if (logs.isEmpty)
+              const Text('No pricing audit logs yet.')
+            else
+              ...logs
+                  .take(25)
+                  .map(
+                    (log) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(log.summary),
+                      subtitle: Text(
+                        '${log.action} • ${log.recordType} • ${_formatDateTime(log.createdAt)} • ${_createdByLabel(log.createdBy)}',
+                      ),
+                      trailing: log.fieldName == null
+                          ? null
+                          : Text(
+                              log.fieldName!,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                    ),
+                  ),
           ],
         ),
       ),
