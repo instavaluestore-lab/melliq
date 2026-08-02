@@ -412,6 +412,59 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     }
   }
 
+  Future<void> _deleteAddonPrice(QuoteAddonPrice price) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Add-On'),
+          content: Text(
+            'Delete ${price.addonName}? Company-added rows will be removed. Global default rows will be hidden for this company.',
+          ),
+          actions: [
+            _dialogActionButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            _dialogActionButton(
+              label: 'Delete',
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await quoteAddonPriceService.deletePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${price.addonName} deleted.')));
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
   Map<String, List<StandardStructurePrice>> get _structurePricesByType {
     final grouped = <String, List<StandardStructurePrice>>{};
 
@@ -523,6 +576,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 addonPrices: addonPrices,
                 formatMoney: _formatMoney,
                 onEditPrice: _editAddonPrice,
+                onDeletePrice: _deleteAddonPrice,
               ),
               const SizedBox(height: 16),
               _StructurePricingCard(
@@ -558,11 +612,13 @@ class _AddonPricingCard extends StatelessWidget {
     required this.addonPrices,
     required this.formatMoney,
     required this.onEditPrice,
+    required this.onDeletePrice,
   });
 
   final List<QuoteAddonPrice> addonPrices;
   final String Function(double value) formatMoney;
   final ValueChanged<QuoteAddonPrice> onEditPrice;
+  final ValueChanged<QuoteAddonPrice> onDeletePrice;
 
   @override
   Widget build(BuildContext context) {

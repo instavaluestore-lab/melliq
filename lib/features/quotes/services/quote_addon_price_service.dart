@@ -14,7 +14,6 @@ class QuoteAddonPriceService {
         .from('quote_addon_prices')
         .select()
         .or('company_id.is.null,company_id.eq.$companyId')
-        .eq('is_active', true)
         .order('addon_type', ascending: true)
         .order('sort_order', ascending: true);
 
@@ -38,7 +37,7 @@ class QuoteAddonPriceService {
       }
     }
 
-    final dedupedPrices = byKey.values.toList()
+    final dedupedPrices = byKey.values.where((price) => price.isActive).toList()
       ..sort((a, b) {
         final typeCompare = a.addonType.compareTo(b.addonType);
         if (typeCompare != 0) return typeCompare;
@@ -50,6 +49,41 @@ class QuoteAddonPriceService {
       });
 
     return dedupedPrices;
+  }
+
+  Future<void> deletePrice({
+    required String companyId,
+    required QuoteAddonPrice price,
+  }) async {
+    final existingCompanyRows = await _supabase
+        .from('quote_addon_prices')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('addon_key', price.addonKey)
+        .limit(1);
+
+    final now = DateTime.now().toIso8601String();
+
+    if (existingCompanyRows.isNotEmpty) {
+      final existingId = existingCompanyRows.first['id'] as String;
+
+      await _supabase.from('quote_addon_prices').delete().eq('id', existingId);
+
+      return;
+    }
+
+    await _supabase.from('quote_addon_prices').insert({
+      'company_id': companyId,
+      'addon_key': price.addonKey,
+      'addon_name': price.addonName,
+      'addon_type': price.addonType,
+      'unit': price.unit,
+      'unit_price': price.unitPrice,
+      'is_active': false,
+      'sort_order': price.sortOrder,
+      'created_at': now,
+      'updated_at': now,
+    });
   }
 
   Future<void> updatePrice({
