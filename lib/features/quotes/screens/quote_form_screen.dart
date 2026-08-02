@@ -366,7 +366,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
         text: quantity.toStringAsFixed(0),
       ),
       unitController: TextEditingController(text: unit),
-      unitCostController: TextEditingController(text: '0'),
+      unitCostController: TextEditingController(
+        text: unitPrice.toStringAsFixed(2),
+      ),
       unitPriceController: TextEditingController(
         text: unitPrice.toStringAsFixed(2),
       ),
@@ -480,7 +482,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       ),
       quantityController: TextEditingController(text: '1'),
       unitController: TextEditingController(text: 'each'),
-      unitCostController: TextEditingController(text: '0'),
+      unitCostController: TextEditingController(
+        text: selectedPrice.price.toStringAsFixed(2),
+      ),
       unitPriceController: TextEditingController(
         text: selectedPrice.price.toStringAsFixed(2),
       ),
