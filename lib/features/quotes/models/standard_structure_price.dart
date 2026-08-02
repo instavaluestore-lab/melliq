@@ -27,7 +27,10 @@ class StandardStructurePrice {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  String get displayLabel => sizeLabel;
+  String get sizeOnlyLabel =>
+      '$lengthFeetFormatted ft × $widthFeetFormatted ft';
+
+  String get displayLabel => '$sizeOnlyLabel — \$${price.toStringAsFixed(2)}';
 
   String get quoteLineName =>
       '$structureName $lengthFeetFormatted ft × $widthFeetFormatted ft';

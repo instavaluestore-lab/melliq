@@ -68,24 +68,28 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     }
   }
 
-  Future<void> _editAddonPrice(QuoteAddonPrice price) async {
+  Future<double?> _showMoneyDialog({
+    required String title,
+    required String label,
+    required double currentValue,
+  }) async {
     final controller = TextEditingController(
-      text: price.unitPrice.toStringAsFixed(2),
+      text: currentValue.toStringAsFixed(2),
     );
 
-    final newPrice = await showDialog<double>(
+    final result = await showDialog<double>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit ${price.addonName}'),
+          title: Text(title),
           content: TextField(
             controller: controller,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Unit Price',
+            decoration: InputDecoration(
+              labelText: label,
               prefixText: '\$',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           actions: [
@@ -99,9 +103,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                   controller.text.trim().replaceAll(',', ''),
                 );
 
-                if (parsed == null || parsed < 0) {
-                  return;
-                }
+                if (parsed == null || parsed < 0) return;
 
                 Navigator.of(context).pop(parsed);
               },
@@ -113,6 +115,200 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     );
 
     controller.dispose();
+
+    return result;
+  }
+
+  Future<void> _editStructurePrice(StandardStructurePrice price) async {
+    final newPrice = await _showMoneyDialog(
+      title: 'Edit ${price.structureName} ${price.sizeOnlyLabel}',
+      label: 'Structure Price',
+      currentValue: price.price,
+    );
+
+    if (newPrice == null) return;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await standardStructurePriceService.updatePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+        unitPrice: newPrice,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${price.structureName} ${price.sizeOnlyLabel} updated.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _addStructurePrice(String structureType) async {
+    final lengthController = TextEditingController();
+    final widthController = TextEditingController();
+    final priceController = TextEditingController();
+
+    final result = await showDialog<_NewStructurePriceDraft>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add ${_structureLabel(structureType)} Size'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: lengthController,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Length Feet',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: widthController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Width Feet',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Price',
+                    prefixText: '\$',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final length = double.tryParse(
+                  lengthController.text.trim().replaceAll(',', ''),
+                );
+                final width = double.tryParse(
+                  widthController.text.trim().replaceAll(',', ''),
+                );
+                final price = double.tryParse(
+                  priceController.text.trim().replaceAll(',', ''),
+                );
+
+                if (length == null ||
+                    length <= 0 ||
+                    width == null ||
+                    width <= 0 ||
+                    price == null ||
+                    price < 0) {
+                  return;
+                }
+
+                Navigator.of(context).pop(
+                  _NewStructurePriceDraft(
+                    lengthFeet: length,
+                    widthFeet: width,
+                    price: price,
+                  ),
+                );
+              },
+              child: const Text('Add Size'),
+            ),
+          ],
+        );
+      },
+    );
+
+    lengthController.dispose();
+    widthController.dispose();
+    priceController.dispose();
+
+    if (result == null) return;
+
+    final existingPrices = _structurePricesByType[structureType] ?? [];
+    final nextSortOrder = existingPrices.isEmpty
+        ? 0
+        : existingPrices
+                  .map((price) => price.sortOrder)
+                  .reduce((a, b) => a > b ? a : b) +
+              1;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await standardStructurePriceService.addPrice(
+        companyId: widget.companyContext.companyId,
+        structureType: structureType,
+        structureName: _structureName(structureType),
+        lengthFeet: result.lengthFeet,
+        widthFeet: result.widthFeet,
+        unitPrice: result.price,
+        sortOrder: nextSortOrder,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_structureLabel(structureType)} size added.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _editAddonPrice(QuoteAddonPrice price) async {
+    final newPrice = await _showMoneyDialog(
+      title: 'Edit ${price.addonName}',
+      label: 'Unit Price',
+      currentValue: price.unitPrice,
+    );
 
     if (newPrice == null) return;
 
@@ -163,6 +359,21 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
         return 'Single Post Pyramid';
       case 'CL':
         return 'Cantilever';
+      case 'SWC':
+        return 'Slanted Wing Cantilever';
+      default:
+        return structureType;
+    }
+  }
+
+  String _structureName(String structureType) {
+    switch (structureType) {
+      case 'HR':
+        return 'Hip Roof Structure';
+      case 'SP':
+        return 'Single Post Pyramid';
+      case 'CL':
+        return 'Cantilever Structure';
       case 'SWC':
         return 'Slanted Wing Cantilever';
       default:
@@ -247,6 +458,8 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 groupedPrices: _structurePricesByType,
                 structureLabel: _structureLabel,
                 formatMoney: _formatMoney,
+                onEditPrice: _editStructurePrice,
+                onAddPrice: _addStructurePrice,
               ),
             ],
           ],
@@ -254,6 +467,18 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       ),
     );
   }
+}
+
+class _NewStructurePriceDraft {
+  const _NewStructurePriceDraft({
+    required this.lengthFeet,
+    required this.widthFeet,
+    required this.price,
+  });
+
+  final double lengthFeet;
+  final double widthFeet;
+  final double price;
 }
 
 class _AddonPricingCard extends StatelessWidget {
@@ -317,11 +542,15 @@ class _StructurePricingCard extends StatelessWidget {
     required this.groupedPrices,
     required this.structureLabel,
     required this.formatMoney,
+    required this.onEditPrice,
+    required this.onAddPrice,
   });
 
   final Map<String, List<StandardStructurePrice>> groupedPrices;
   final String Function(String structureType) structureLabel;
   final String Function(double value) formatMoney;
+  final ValueChanged<StandardStructurePrice> onEditPrice;
+  final ValueChanged<String> onAddPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -348,22 +577,54 @@ class _StructurePricingCard extends StatelessWidget {
                   tilePadding: EdgeInsets.zero,
                   title: Text(structureLabel(structureType)),
                   subtitle: Text('${prices.length} active price rows'),
-                  children: prices
-                      .map(
-                        (price) => ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(price.sizeLabel),
-                          subtitle: Text(
-                            '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft',
+                  children: [
+                    ...prices.map(
+                      (price) => Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
                           ),
-                          trailing: Text(
-                            formatMoney(price.price),
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      )
-                      .toList(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              price.sizeOnlyLabel,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft • ${formatMoney(price.price)}',
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton.icon(
+                                onPressed: () => onEditPrice(price),
+                                icon: const Icon(Icons.edit),
+                                label: const Text('Edit Price'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () => onAddPrice(structureType),
+                        icon: const Icon(Icons.add),
+                        label: Text(
+                          'Add ${structureLabel(structureType)} Size',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 );
               }),
           ],
