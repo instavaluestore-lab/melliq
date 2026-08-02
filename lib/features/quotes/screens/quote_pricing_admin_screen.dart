@@ -1261,16 +1261,47 @@ class _HiddenPricingCard extends StatelessWidget {
                 const Text('No hidden add-on prices.')
               else
                 ...hiddenAddonPrices.map(
-                  (price) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(price.addonName),
-                    subtitle: Text(
-                      '${price.addonType} • ${price.unit} • ${formatMoney(price.unitPrice)}',
+                  (price) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    trailing: OutlinedButton.icon(
-                      onPressed: () => onRestoreAddonPrice(price),
-                      icon: const Icon(Icons.restore),
-                      label: const Text('Restore'),
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 220),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                price.addonName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${price.addonType} • ${price.unit}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          formatMoney(price.unitPrice),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => onRestoreAddonPrice(price),
+                          icon: const Icon(Icons.restore),
+                          label: const Text('Restore'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1284,18 +1315,47 @@ class _HiddenPricingCard extends StatelessWidget {
                 const Text('No hidden structure prices.')
               else
                 ...hiddenStructurePrices.map(
-                  (price) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${structureLabel(price.structureType)} ${price.sizeOnlyLabel}',
+                  (price) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    subtitle: Text(
-                      '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft • ${formatMoney(price.price)}',
-                    ),
-                    trailing: OutlinedButton.icon(
-                      onPressed: () => onRestoreStructurePrice(price),
-                      icon: const Icon(Icons.restore),
-                      label: const Text('Restore'),
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 220),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${structureLabel(price.structureType)} ${price.sizeOnlyLabel}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          formatMoney(price.price),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => onRestoreStructurePrice(price),
+                          icon: const Icon(Icons.restore),
+                          label: const Text('Restore'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
