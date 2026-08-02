@@ -105,6 +105,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final canViewFinancials = companyContext?.canViewFinancials == true;
     final metrics = projectMetrics;
+    final workspaceTitle =
+        companyContext?.displayWorkspaceName ?? 'LupinusBuild Dashboard';
+    final workspaceSubtitle =
+        companyContext?.loginSubtitle?.trim().isNotEmpty == true
+        ? companyContext!.loginSubtitle!.trim()
+        : 'Track customers, leads, quotes, projects, materials, files, and profitability.';
 
     final stats = [
       const _DashboardStat(
@@ -176,24 +182,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
-              'MaxShade Operations',
-              style: TextStyle(
+            Text(
+              workspaceTitle,
+              style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Track customers, leads, quotes, projects, materials, files, and profitability.',
-              style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+            Text(
+              workspaceSubtitle,
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 16),
             ),
             const SizedBox(height: 24),
             if (isLoading)
               const _InfoCard(
                 title: 'Loading company context...',
-                body: 'Checking your MaxShade role and access permissions.',
+                body: 'Checking your workspace role and access permissions.',
               )
             else if (errorMessage != null)
               _InfoCard(
