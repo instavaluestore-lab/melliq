@@ -6,6 +6,13 @@ class CompanyContext {
     required this.userEmail,
     required this.role,
     required this.status,
+    this.brandName,
+    this.workspaceName,
+    this.logoUrl,
+    this.loginSubtitle,
+    this.primaryBrandColor,
+    this.accentBrandColor,
+    this.poweredByLupinusBuild = true,
   });
 
   final String companyId;
@@ -14,6 +21,13 @@ class CompanyContext {
   final String userEmail;
   final String role;
   final String status;
+  final String? brandName;
+  final String? workspaceName;
+  final String? logoUrl;
+  final String? loginSubtitle;
+  final String? primaryBrandColor;
+  final String? accentBrandColor;
+  final bool poweredByLupinusBuild;
 
   bool get isPrimaryAdmin {
     return role == 'primary_admin';
@@ -43,6 +57,33 @@ class CompanyContext {
     return status == 'active';
   }
 
+  String get displayBrandName {
+    final value = brandName?.trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+
+    return companyName;
+  }
+
+  String get displayWorkspaceName {
+    final value = workspaceName?.trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+
+    return '$displayBrandName Workspace';
+  }
+
+  String get displayLoginSubtitle {
+    final value = loginSubtitle?.trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+
+    return 'Project Operations';
+  }
+
   String get roleLabel {
     return switch (role) {
       'primary_admin' => 'PRIMARY ADMIN',
@@ -54,7 +95,6 @@ class CompanyContext {
       _ => role.toUpperCase(),
     };
   }
-
 
   bool get hasExecutiveAccess {
     return isPrimaryAdmin || isCfo;
@@ -191,6 +231,13 @@ class CompanyContext {
       userEmail: map['user_email'] as String,
       role: map['role'] as String,
       status: map['status'] as String,
+      brandName: map['brand_name'] as String?,
+      workspaceName: map['workspace_name'] as String?,
+      logoUrl: map['logo_url'] as String?,
+      loginSubtitle: map['login_subtitle'] as String?,
+      primaryBrandColor: map['primary_brand_color'] as String?,
+      accentBrandColor: map['accent_brand_color'] as String?,
+      poweredByLupinusBuild: map['powered_by_lupinusbuild'] as bool? ?? true,
     );
   }
 }

@@ -22,7 +22,14 @@ class CompanyService {
           role,
           status,
           companies (
-            name
+            name,
+              brand_name,
+              workspace_name,
+              logo_url,
+              login_subtitle,
+              primary_brand_color,
+              accent_brand_color,
+              powered_by_lupinusbuild
           ),
           profiles!company_members_user_id_fkey (
             email
@@ -38,12 +45,18 @@ class CompanyService {
     }
 
     final company = response['companies'] as Map<String, dynamic>?;
-    final profile =
-        response['profiles'] as Map<String, dynamic>?;
+    final profile = response['profiles'] as Map<String, dynamic>?;
 
     return CompanyContext.fromMap({
       'company_id': response['company_id'],
       'company_name': company?['name'] ?? 'Unknown Company',
+      'brand_name': company?['brand_name'],
+      'workspace_name': company?['workspace_name'],
+      'logo_url': company?['logo_url'],
+      'login_subtitle': company?['login_subtitle'],
+      'primary_brand_color': company?['primary_brand_color'],
+      'accent_brand_color': company?['accent_brand_color'],
+      'powered_by_lupinusbuild': company?['powered_by_lupinusbuild'] ?? true,
       'user_id': response['user_id'],
       'user_email': profile?['email'] ?? currentUser.email ?? 'Unknown User',
       'role': response['role'],
