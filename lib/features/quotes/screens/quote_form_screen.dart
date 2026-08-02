@@ -1106,6 +1106,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                       onChanged: () => setState(() {}),
                       onRemove: () => _removeLineItem(item),
                       formatCurrency: _formatCurrency,
+                      showInternalCost: companyContext.hasExecutiveAccess,
                     ),
                   ),
                   Align(
@@ -1558,12 +1559,14 @@ class _LineItemCard extends StatelessWidget {
     required this.onChanged,
     required this.onRemove,
     required this.formatCurrency,
+    required this.showInternalCost,
   });
 
   final _QuoteLineItemEditor item;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
   final String Function(double value) formatCurrency;
+  final bool showInternalCost;
 
   @override
   Widget build(BuildContext context) {
@@ -1665,18 +1668,19 @@ class _LineItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: 140,
-                  child: TextFormField(
-                    controller: item.unitCostController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit Cost',
-                      border: OutlineInputBorder(),
+                if (showInternalCost)
+                  SizedBox(
+                    width: 140,
+                    child: TextFormField(
+                      controller: item.unitCostController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Unit Cost',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => onChanged(),
                     ),
-                    onChanged: (_) => onChanged(),
                   ),
-                ),
                 SizedBox(
                   width: 140,
                   child: TextFormField(
@@ -1692,6 +1696,16 @@ class _LineItemCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
+            if (!showInternalCost) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Internal cost hidden for this role.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Align(
               alignment: Alignment.centerRight,
               child: Text(
