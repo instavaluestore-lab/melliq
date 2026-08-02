@@ -1433,6 +1433,23 @@ class _QuotePricingPreviewCard extends StatelessWidget {
               'Customer-facing structure, footer, and mount pricing currently included in this quote.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (showInternalMetrics) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondaryContainer.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Pricing logic: Base Price is the quote basis before markup, Cost Basis is the internal cost basis, Profit Markup is the added profit layer, and Customer Total is the final quote amount. For auto-priced table items, Base Price and Cost Basis may match so Estimated Profit reflects markup/profit only.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             if (selectedStructurePrice == null)
               const Text('No standard structure price selected.')
@@ -1749,6 +1766,27 @@ class _TotalsCard extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
+            if (showInternalMetrics)
+              SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Internal pricing summary',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cost Basis is protected internal pricing. Estimated Profit should represent profit only, not the full structure amount.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
             _TotalMetric(
               label: 'Base Price',
               value: formatCurrency(totals.subtotal),
