@@ -7,10 +7,7 @@ import '../services/quote_service.dart';
 import 'quote_form_screen.dart';
 
 class QuotesListScreen extends StatefulWidget {
-  const QuotesListScreen({
-    super.key,
-    required this.companyContext,
-  });
+  const QuotesListScreen({super.key, required this.companyContext});
 
   final CompanyContext companyContext;
 
@@ -74,9 +71,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
   Future<void> _openAddQuoteForm() async {
     final didSave = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => QuoteFormScreen(
-          companyContext: companyContext,
-        ),
+        builder: (_) => QuoteFormScreen(companyContext: companyContext),
       ),
     );
 
@@ -88,10 +83,8 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
   Future<void> _openEditQuoteForm(Quote quote) async {
     final didSave = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => QuoteFormScreen(
-          companyContext: companyContext,
-          quote: quote,
-        ),
+        builder: (_) =>
+            QuoteFormScreen(companyContext: companyContext, quote: quote),
       ),
     );
 
@@ -133,9 +126,9 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
           children: [
             Text(
               'Quotes',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(
@@ -169,6 +162,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                 (quote) => _QuoteCard(
                   quote: quote,
                   statusColor: _statusColor(quote.status),
+                  showInternalMetrics: companyContext.hasExecutiveAccess,
                   onTap: () => _openEditQuoteForm(quote),
                 ),
               ),
@@ -204,9 +198,9 @@ class _EmptyQuotesCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'No quotes yet',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -232,11 +226,13 @@ class _QuoteCard extends StatelessWidget {
   const _QuoteCard({
     required this.quote,
     required this.statusColor,
+    required this.showInternalMetrics,
     required this.onTap,
   });
 
   final Quote quote;
   final Color statusColor;
+  final bool showInternalMetrics;
   final VoidCallback onTap;
 
   String formatCurrency(double value) {
@@ -270,93 +266,96 @@ class _QuoteCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  quote.quoteNumber,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: statusColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Text(
-                    quote.statusLabel,
-                    style: TextStyle(
-                      color: statusColor,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    quote.quoteNumber,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      quote.statusLabel,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                quote.title.isEmpty ? 'Untitled Quote' : quote.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              if (quote.notes != null && quote.notes!.trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  quote.notes!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              quote.title.isEmpty ? 'Untitled Quote' : quote.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _MetricPill(
+                    label: 'Base Price',
+                    value: formatCurrency(quote.subtotal),
                   ),
-            ),
-            if (quote.notes != null && quote.notes!.trim().isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                quote.notes!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                  _MetricPill(
+                    label: 'Customer Total',
+                    value: formatCurrency(quote.totalAmount),
+                    isBold: true,
+                  ),
+                  if (showInternalMetrics) ...[
+                    _MetricPill(
+                      label: 'Cost Basis',
+                      value: formatCurrency(quote.estimatedCost),
+                    ),
+                    _MetricPill(
+                      label: 'Estimated Profit',
+                      value: formatCurrency(quote.estimatedProfit),
+                    ),
+                    _MetricPill(label: 'Estimated Margin', value: marginText),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Tap to edit',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _MetricPill(
-                  label: 'Subtotal',
-                  value: formatCurrency(quote.subtotal),
-                ),
-                _MetricPill(
-                  label: 'Total',
-                  value: formatCurrency(quote.totalAmount),
-                  isBold: true,
-                ),
-                _MetricPill(
-                  label: 'Profit',
-                  value: formatCurrency(quote.estimatedProfit),
-                ),
-                _MetricPill(
-                  label: 'Margin',
-                  value: marginText,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Tap to edit',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -379,9 +378,7 @@ class _MetricPill extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 110),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -392,8 +389,8 @@ class _MetricPill extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
-                ),
+              fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+            ),
           ),
         ],
       ),
