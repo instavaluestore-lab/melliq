@@ -56,9 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
     } on AuthException catch (error) {
       setState(() {
@@ -86,11 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF020617),
-              Color(0xFF0F172A),
-              Color(0xFF1E3A8A),
-            ],
+            colors: [Color(0xFF020617), Color(0xFF0F172A), Color(0xFF1E3A8A)],
           ),
         ),
         child: Center(
@@ -100,52 +94,62 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                    Container(
-                      width: 126,
-                      height: 126,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(34),
-                        border: Border.all(
-                          color: const Color(0xFFE2E8F0),
-                          width: 1.2,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x44000000),
-                            blurRadius: 30,
-                            offset: Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(26),
-                        child: Image.asset(
-                          'assets/branding/lupinusbuild-logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                  Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 22,
                     ),
-                  const SizedBox(height: 22),
-                  const Text(
-                    'LupinusBuild',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
+                    decoration: BoxDecoration(
                       color: Colors.white,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 1.2,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x44000000),
+                          blurRadius: 30,
+                          offset: Offset(0, 14),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'MaxShade Project Operations',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFFCBD5E1),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: Column(
+                      children: const [
+                        Text(
+                          'MaxShade',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Project Operations',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Powered by LupinusBuild',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 30),
