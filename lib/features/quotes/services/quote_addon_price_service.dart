@@ -51,6 +51,34 @@ class QuoteAddonPriceService {
     return dedupedPrices;
   }
 
+  Future<List<QuoteAddonPrice>> getHiddenPrices({
+    required String companyId,
+  }) async {
+    final rows = await _supabase
+        .from('quote_addon_prices')
+        .select()
+        .eq('company_id', companyId)
+        .eq('is_active', false)
+        .order('addon_type', ascending: true)
+        .order('sort_order', ascending: true);
+
+    return rows.map<QuoteAddonPrice>(QuoteAddonPrice.fromMap).toList();
+  }
+
+  Future<void> restorePrice({
+    required String companyId,
+    required QuoteAddonPrice price,
+  }) async {
+    await _supabase
+        .from('quote_addon_prices')
+        .update({
+          'is_active': true,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', price.id)
+        .eq('company_id', companyId);
+  }
+
   Future<void> deletePrice({
     required String companyId,
     required QuoteAddonPrice price,
@@ -67,7 +95,10 @@ class QuoteAddonPriceService {
     if (existingCompanyRows.isNotEmpty) {
       final existingId = existingCompanyRows.first['id'] as String;
 
-      await _supabase.from('quote_addon_prices').delete().eq('id', existingId);
+      await _supabase
+          .from('quote_addon_prices')
+          .update({'is_active': false, 'updated_at': now})
+          .eq('id', existingId);
 
       return;
     }

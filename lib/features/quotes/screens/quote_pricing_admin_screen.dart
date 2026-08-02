@@ -22,10 +22,13 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
   late final QuoteAddonPriceService quoteAddonPriceService;
 
   bool isLoading = true;
+  bool showHiddenPricing = false;
   String? errorMessage;
 
   List<StandardStructurePrice> structurePrices = [];
+  List<StandardStructurePrice> hiddenStructurePrices = [];
   List<QuoteAddonPrice> addonPrices = [];
+  List<QuoteAddonPrice> hiddenAddonPrices = [];
 
   @override
   void initState() {
@@ -47,15 +50,23 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       final loadedStructurePrices = await standardStructurePriceService
           .getActivePrices(companyId: widget.companyContext.companyId);
 
+      final loadedHiddenStructurePrices = await standardStructurePriceService
+          .getHiddenPrices(companyId: widget.companyContext.companyId);
+
       final loadedAddonPrices = await quoteAddonPriceService.getActivePrices(
         companyId: widget.companyContext.companyId,
       );
+
+      final loadedHiddenAddonPrices = await quoteAddonPriceService
+          .getHiddenPrices(companyId: widget.companyContext.companyId);
 
       if (!mounted) return;
 
       setState(() {
         structurePrices = loadedStructurePrices;
+        hiddenStructurePrices = loadedHiddenStructurePrices;
         addonPrices = loadedAddonPrices;
+        hiddenAddonPrices = loadedHiddenAddonPrices;
         isLoading = false;
       });
     } catch (error) {
@@ -75,7 +86,7 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     return SizedBox(
       width: 132,
       height: 42,
-      child: OutlinedButton(
+      child: FilledButton.tonal(
         onPressed: onPressed,
         child: Text(label, textAlign: TextAlign.center),
       ),
@@ -183,6 +194,21 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     final result = await showDialog<_NewStructurePriceDraft>(
       context: context,
       builder: (context) {
+        Widget actionButton({
+          required String label,
+          required VoidCallback onPressed,
+        }) {
+          return Expanded(
+            child: SizedBox(
+              height: 44,
+              child: FilledButton.tonal(
+                onPressed: onPressed,
+                child: Text(label, textAlign: TextAlign.center),
+              ),
+            ),
+          );
+        }
+
         return AlertDialog(
           title: Text('Add ${_structureLabel(structureType)} Size'),
           content: SizedBox(
@@ -224,46 +250,50 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    actionButton(
+                      label: 'Cancel',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 12),
+                    actionButton(
+                      label: 'Add Size',
+                      onPressed: () {
+                        final length = double.tryParse(
+                          lengthController.text.trim().replaceAll(',', ''),
+                        );
+                        final width = double.tryParse(
+                          widthController.text.trim().replaceAll(',', ''),
+                        );
+                        final price = double.tryParse(
+                          priceController.text.trim().replaceAll(',', ''),
+                        );
+
+                        if (length == null ||
+                            length <= 0 ||
+                            width == null ||
+                            width <= 0 ||
+                            price == null ||
+                            price < 0) {
+                          return;
+                        }
+
+                        Navigator.of(context).pop(
+                          _NewStructurePriceDraft(
+                            lengthFeet: length,
+                            widthFeet: width,
+                            price: price,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final length = double.tryParse(
-                  lengthController.text.trim().replaceAll(',', ''),
-                );
-                final width = double.tryParse(
-                  widthController.text.trim().replaceAll(',', ''),
-                );
-                final price = double.tryParse(
-                  priceController.text.trim().replaceAll(',', ''),
-                );
-
-                if (length == null ||
-                    length <= 0 ||
-                    width == null ||
-                    width <= 0 ||
-                    price == null ||
-                    price < 0) {
-                  return;
-                }
-
-                Navigator.of(context).pop(
-                  _NewStructurePriceDraft(
-                    lengthFeet: length,
-                    widthFeet: width,
-                    price: price,
-                  ),
-                );
-              },
-              child: const Text('Add Size'),
-            ),
-          ],
         );
       },
     );
@@ -374,6 +404,39 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
     }
   }
 
+  Future<void> _restoreStructurePrice(StandardStructurePrice price) async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await standardStructurePriceService.restorePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${price.structureName} ${price.sizeOnlyLabel} restored.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
   Future<void> _editAddonPrice(QuoteAddonPrice price) async {
     final newPrice = await _showMoneyDialog(
       title: 'Edit ${price.addonName}',
@@ -455,6 +518,35 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${price.addonName} deleted.')));
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _restoreAddonPrice(QuoteAddonPrice price) async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      await quoteAddonPriceService.restorePrice(
+        companyId: widget.companyContext.companyId,
+        price: price,
+      );
+
+      await _loadPricing();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${price.addonName} restored.')));
     } catch (error) {
       if (!mounted) return;
 
@@ -587,6 +679,21 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
                 onAddPrice: _addStructurePrice,
                 onDeletePrice: _deleteStructurePrice,
               ),
+              const SizedBox(height: 16),
+              _HiddenPricingCard(
+                showHiddenPricing: showHiddenPricing,
+                hiddenStructurePrices: hiddenStructurePrices,
+                hiddenAddonPrices: hiddenAddonPrices,
+                structureLabel: _structureLabel,
+                formatMoney: _formatMoney,
+                onToggleShowHidden: (value) {
+                  setState(() {
+                    showHiddenPricing = value;
+                  });
+                },
+                onRestoreStructurePrice: _restoreStructurePrice,
+                onRestoreAddonPrice: _restoreAddonPrice,
+              ),
             ],
           ],
         ),
@@ -658,6 +765,104 @@ class _AddonPricingCard extends StatelessWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HiddenPricingCard extends StatelessWidget {
+  const _HiddenPricingCard({
+    required this.showHiddenPricing,
+    required this.hiddenStructurePrices,
+    required this.hiddenAddonPrices,
+    required this.structureLabel,
+    required this.formatMoney,
+    required this.onToggleShowHidden,
+    required this.onRestoreStructurePrice,
+    required this.onRestoreAddonPrice,
+  });
+
+  final bool showHiddenPricing;
+  final List<StandardStructurePrice> hiddenStructurePrices;
+  final List<QuoteAddonPrice> hiddenAddonPrices;
+  final String Function(String structureType) structureLabel;
+  final String Function(double value) formatMoney;
+  final ValueChanged<bool> onToggleShowHidden;
+  final ValueChanged<StandardStructurePrice> onRestoreStructurePrice;
+  final ValueChanged<QuoteAddonPrice> onRestoreAddonPrice;
+
+  @override
+  Widget build(BuildContext context) {
+    final hiddenCount = hiddenStructurePrices.length + hiddenAddonPrices.length;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Hidden Pricing',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              subtitle: Text('$hiddenCount hidden pricing rows'),
+              value: showHiddenPricing,
+              onChanged: onToggleShowHidden,
+            ),
+            if (showHiddenPricing) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Hidden Footer and Mount Pricing',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (hiddenAddonPrices.isEmpty)
+                const Text('No hidden add-on prices.')
+              else
+                ...hiddenAddonPrices.map(
+                  (price) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(price.addonName),
+                    subtitle: Text(
+                      '${price.addonType} • ${price.unit} • ${formatMoney(price.unitPrice)}',
+                    ),
+                    trailing: OutlinedButton.icon(
+                      onPressed: () => onRestoreAddonPrice(price),
+                      icon: const Icon(Icons.restore),
+                      label: const Text('Restore'),
+                    ),
+                  ),
+                ),
+              const Divider(height: 32),
+              Text(
+                'Hidden Standard Structure Pricing',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (hiddenStructurePrices.isEmpty)
+                const Text('No hidden structure prices.')
+              else
+                ...hiddenStructurePrices.map(
+                  (price) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      '${structureLabel(price.structureType)} ${price.sizeOnlyLabel}',
+                    ),
+                    subtitle: Text(
+                      '${price.lengthFeetFormatted} ft × ${price.widthFeetFormatted} ft • ${formatMoney(price.price)}',
+                    ),
+                    trailing: OutlinedButton.icon(
+                      onPressed: () => onRestoreStructurePrice(price),
+                      icon: const Icon(Icons.restore),
+                      label: const Text('Restore'),
+                    ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),

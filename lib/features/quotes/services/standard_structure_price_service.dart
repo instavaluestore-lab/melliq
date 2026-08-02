@@ -66,6 +66,38 @@ class StandardStructurePriceService {
     return dedupedPrices;
   }
 
+  Future<List<StandardStructurePrice>> getHiddenPrices({
+    required String companyId,
+  }) async {
+    final rows = await _supabase
+        .from('standard_structure_prices')
+        .select()
+        .eq('company_id', companyId)
+        .eq('is_active', false)
+        .order('structure_type', ascending: true)
+        .order('sort_order', ascending: true)
+        .order('length_feet', ascending: true)
+        .order('width_feet', ascending: true);
+
+    return rows
+        .map<StandardStructurePrice>(StandardStructurePrice.fromMap)
+        .toList();
+  }
+
+  Future<void> restorePrice({
+    required String companyId,
+    required StandardStructurePrice price,
+  }) async {
+    await _supabase
+        .from('standard_structure_prices')
+        .update({
+          'is_active': true,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', price.id)
+        .eq('company_id', companyId);
+  }
+
   Future<void> updatePrice({
     required String companyId,
     required StandardStructurePrice price,
@@ -193,7 +225,7 @@ class StandardStructurePriceService {
 
       await _supabase
           .from('standard_structure_prices')
-          .delete()
+          .update({'is_active': false, 'updated_at': now})
           .eq('id', existingId);
 
       return;
