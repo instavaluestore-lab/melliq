@@ -866,6 +866,21 @@ class _QuotePricingAdminScreenState extends State<QuotePricingAdminScreen> {
               'Primary Admin and CFO pricing controls.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(label: Text('Structure rows: ${structurePrices.length}')),
+                Chip(label: Text('Footer/Mount rows: ${addonPrices.length}')),
+                Chip(
+                  label: Text(
+                    'Hidden rows: ${hiddenStructurePrices.length + hiddenAddonPrices.length}',
+                  ),
+                ),
+                Chip(label: Text('Audit rows: ${pricingAuditLogs.length}')),
+              ],
+            ),
             const SizedBox(height: 16),
             if (isLoading)
               const Center(
@@ -980,34 +995,32 @@ class _AddonPricingCard extends StatelessWidget {
                     border: Border.all(color: Theme.of(context).dividerColor),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(minWidth: 220),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              price.addonName,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${price.addonType} • ${price.unit}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final useStackedLayout = constraints.maxWidth < 680;
+
+                      final nameBlock = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            price.addonName,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${price.addonType} • ${price.unit}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      );
+
+                      final priceBlock = Text(
                         formatMoney(price.unitPrice),
+                        textAlign: TextAlign.right,
                         style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Wrap(
+                      );
+
+                      final actionBlock = Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
@@ -1022,8 +1035,32 @@ class _AddonPricingCard extends StatelessWidget {
                             label: const Text('Delete'),
                           ),
                         ],
-                      ),
-                    ],
+                      );
+
+                      if (useStackedLayout) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            nameBlock,
+                            const SizedBox(height: 12),
+                            priceBlock,
+                            const SizedBox(height: 12),
+                            actionBlock,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(child: nameBlock),
+                          const SizedBox(width: 16),
+                          SizedBox(width: 120, child: priceBlock),
+                          const SizedBox(width: 16),
+                          SizedBox(width: 220, child: actionBlock),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
