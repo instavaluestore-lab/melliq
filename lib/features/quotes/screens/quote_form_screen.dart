@@ -305,6 +305,41 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     return null;
   }
 
+  StandardStructurePrice? get _selectedStandardStructurePrice {
+    final priceId = selectedStandardStructurePriceId;
+    if (priceId == null || priceId.isEmpty) return null;
+
+    for (final price in standardStructurePrices) {
+      if (price.id == priceId) return price;
+    }
+
+    return null;
+  }
+
+  List<_QuotePricingPreviewItem> get _pricingPreviewItems {
+    return lineItems
+        .where((item) {
+          final description = item.descriptionController.text.trim();
+
+          return description.startsWith('Auto-priced footer:') ||
+              description.startsWith('Auto-priced mount:');
+        })
+        .map(
+          (item) => _QuotePricingPreviewItem(
+            name: item.nameController.text.trim().isEmpty
+                ? 'Unnamed pricing item'
+                : item.nameController.text.trim(),
+            quantity: item.quantity,
+            unit: item.unitController.text.trim().isEmpty
+                ? 'each'
+                : item.unitController.text.trim(),
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+          ),
+        )
+        .toList();
+  }
+
   double get _footerQuantity {
     final parsed = double.tryParse(
       footerQuantityController.text.trim().replaceAll(',', ''),
@@ -1050,6 +1085,14 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                           },
                   ),
 
+                  _QuotePricingPreviewCard(
+                    selectedStructurePrice: _selectedStandardStructurePrice,
+                    previewItems: _pricingPreviewItems,
+                    totals: totals,
+                    formatCurrency: _formatCurrency,
+                    showInternalMetrics: companyContext.hasExecutiveAccess,
+                  ),
+                  const SizedBox(height: 20),
                   Text(
                     'Line Items',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -1074,7 +1117,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _TotalsCard(totals: totals, formatCurrency: _formatCurrency),
+                  _TotalsCard(
+                    totals: totals,
+                    formatCurrency: _formatCurrency,
+                    showInternalMetrics: companyContext.hasExecutiveAccess,
+                  ),
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: notesController,
@@ -1331,6 +1378,180 @@ class _QuoteLineItemEditor {
   }
 }
 
+class _QuotePricingPreviewItem {
+  const _QuotePricingPreviewItem({
+    required this.name,
+    required this.quantity,
+    required this.unit,
+    required this.unitPrice,
+    required this.totalPrice,
+  });
+
+  final String name;
+  final double quantity;
+  final String unit;
+  final double unitPrice;
+  final double totalPrice;
+}
+
+class _QuotePricingPreviewCard extends StatelessWidget {
+  const _QuotePricingPreviewCard({
+    required this.selectedStructurePrice,
+    required this.previewItems,
+    required this.totals,
+    required this.formatCurrency,
+    required this.showInternalMetrics,
+  });
+
+  final StandardStructurePrice? selectedStructurePrice;
+  final List<_QuotePricingPreviewItem> previewItems;
+  final QuoteTotals totals;
+  final String Function(double value) formatCurrency;
+  final bool showInternalMetrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quote Pricing Preview',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Customer-facing structure, footer, and mount pricing currently included in this quote.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            if (selectedStructurePrice == null)
+              const Text('No standard structure price selected.')
+            else
+              _QuotePricingPreviewRow(
+                label: selectedStructurePrice!.quoteLineName,
+                detail:
+                    '${selectedStructurePrice!.lengthFeetFormatted} ft × ${selectedStructurePrice!.widthFeetFormatted} ft',
+                value: formatCurrency(selectedStructurePrice!.price),
+              ),
+            if (previewItems.isEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('No auto-priced footer or mount items added yet.'),
+            ] else ...[
+              const SizedBox(height: 8),
+              ...previewItems.map(
+                (item) => _QuotePricingPreviewRow(
+                  label: item.name,
+                  detail:
+                      '${item.quantity.toStringAsFixed(item.quantity % 1 == 0 ? 0 : 2)} ${item.unit} × ${formatCurrency(item.unitPrice)}',
+                  value: formatCurrency(item.totalPrice),
+                ),
+              ),
+            ],
+            const Divider(height: 28),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _TotalMetric(
+                  label: 'Subtotal',
+                  value: formatCurrency(totals.subtotal),
+                ),
+                _TotalMetric(
+                  label: 'Total',
+                  value: formatCurrency(totals.totalAmount),
+                  isBold: true,
+                ),
+                if (showInternalMetrics) ...[
+                  _TotalMetric(
+                    label: 'Est. Cost',
+                    value: formatCurrency(totals.estimatedCost),
+                  ),
+                  _TotalMetric(
+                    label: 'Est. Profit',
+                    value: formatCurrency(totals.estimatedProfit),
+                  ),
+                  _TotalMetric(
+                    label: 'Margin',
+                    value:
+                        '${totals.estimatedMarginPercent.toStringAsFixed(1)}%',
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuotePricingPreviewRow extends StatelessWidget {
+  const _QuotePricingPreviewRow({
+    required this.label,
+    required this.detail,
+    required this.value,
+  });
+
+  final String label;
+  final String detail;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stacked = constraints.maxWidth < 560;
+
+          final nameBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(detail, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          );
+
+          final valueBlock = Text(
+            value,
+            textAlign: stacked ? TextAlign.left : TextAlign.right,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          );
+
+          if (stacked) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [nameBlock, const SizedBox(height: 8), valueBlock],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: nameBlock),
+              const SizedBox(width: 16),
+              SizedBox(width: 140, child: valueBlock),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _LineItemCard extends StatelessWidget {
   const _LineItemCard({
     required this.item,
@@ -1488,10 +1709,15 @@ class _LineItemCard extends StatelessWidget {
 }
 
 class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({required this.totals, required this.formatCurrency});
+  const _TotalsCard({
+    required this.totals,
+    required this.formatCurrency,
+    required this.showInternalMetrics,
+  });
 
   final QuoteTotals totals;
   final String Function(double value) formatCurrency;
+  final bool showInternalMetrics;
 
   @override
   Widget build(BuildContext context) {
@@ -1519,18 +1745,20 @@ class _TotalsCard extends StatelessWidget {
               value: formatCurrency(totals.totalAmount),
               isBold: true,
             ),
-            _TotalMetric(
-              label: 'Est. Cost',
-              value: formatCurrency(totals.estimatedCost),
-            ),
-            _TotalMetric(
-              label: 'Est. Profit',
-              value: formatCurrency(totals.estimatedProfit),
-            ),
-            _TotalMetric(
-              label: 'Margin',
-              value: '${totals.estimatedMarginPercent.toStringAsFixed(1)}%',
-            ),
+            if (showInternalMetrics) ...[
+              _TotalMetric(
+                label: 'Est. Cost',
+                value: formatCurrency(totals.estimatedCost),
+              ),
+              _TotalMetric(
+                label: 'Est. Profit',
+                value: formatCurrency(totals.estimatedProfit),
+              ),
+              _TotalMetric(
+                label: 'Margin',
+                value: '${totals.estimatedMarginPercent.toStringAsFixed(1)}%',
+              ),
+            ],
           ],
         ),
       ),
