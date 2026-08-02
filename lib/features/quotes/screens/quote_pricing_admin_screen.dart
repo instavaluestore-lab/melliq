@@ -972,28 +972,56 @@ class _AddonPricingCard extends StatelessWidget {
               const Text('No add-on prices found.')
             else
               ...addonPrices.map(
-                (price) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(price.addonName),
-                  subtitle: Text('${price.addonType} • ${price.unit}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                (price) => Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 12,
                     children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 220),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              price.addonName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${price.addonType} • ${price.unit}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
                       Text(
                         formatMoney(price.unitPrice),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        tooltip: 'Edit price',
-                        onPressed: () => onEditPrice(price),
-                        icon: const Icon(Icons.edit),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: () => onDeletePrice(price),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => onEditPrice(price),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Edit'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => onDeletePrice(price),
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Delete'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
