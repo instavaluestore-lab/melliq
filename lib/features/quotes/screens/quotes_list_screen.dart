@@ -5,6 +5,7 @@ import '../../company/models/company_context.dart';
 import '../models/quote.dart';
 import '../services/quote_service.dart';
 import 'quote_form_screen.dart';
+import 'quote_proposal_screen.dart';
 
 class QuotesListScreen extends StatefulWidget {
   const QuotesListScreen({super.key, required this.companyContext});
@@ -93,6 +94,30 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
     }
   }
 
+  Future<void> _openQuoteProposal(Quote quote) async {
+    try {
+      final lineItems = await quoteService.getQuoteLineItems(quoteId: quote.id);
+
+      if (!mounted) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => QuoteProposalScreen(
+            companyContext: companyContext,
+            quote: quote.copyWith(lineItems: lineItems),
+            lineItems: lineItems,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open proposal: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final canManageQuotes =
@@ -164,6 +189,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                   statusColor: _statusColor(quote.status),
                   showInternalMetrics: companyContext.hasExecutiveAccess,
                   onTap: () => _openEditQuoteForm(quote),
+                  onViewProposal: () => _openQuoteProposal(quote),
                 ),
               ),
             const SizedBox(height: 80),
@@ -228,12 +254,14 @@ class _QuoteCard extends StatelessWidget {
     required this.statusColor,
     required this.showInternalMetrics,
     required this.onTap,
+    required this.onViewProposal,
   });
 
   final Quote quote;
   final Color statusColor;
   final bool showInternalMetrics;
   final VoidCallback onTap;
+  final VoidCallback onViewProposal;
 
   String formatCurrency(double value) {
     final negative = value < 0;
@@ -344,14 +372,22 @@ class _QuoteCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Tap to edit',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                children: [
+                  FilledButton.icon(
+                    onPressed: onViewProposal,
+                    icon: const Icon(Icons.description_outlined),
+                    label: const Text('View Proposal'),
                   ),
-                ),
+                  OutlinedButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit Quote'),
+                  ),
+                ],
               ),
             ],
           ),
