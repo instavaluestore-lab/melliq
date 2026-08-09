@@ -8,10 +8,7 @@ import '../services/project_service.dart';
 import 'project_detail_screen.dart';
 
 class ProjectsListScreen extends StatefulWidget {
-  const ProjectsListScreen({
-    super.key,
-    required this.companyContext,
-  });
+  const ProjectsListScreen({super.key, required this.companyContext});
 
   final CompanyContext companyContext;
 
@@ -129,9 +126,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
     final canViewFinancials = widget.companyContext.canViewFinancials;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Projects'),
-      ),
+      appBar: AppBar(title: const Text('Projects')),
       body: Column(
         children: [
           const Padding(
@@ -369,9 +364,7 @@ class _SearchAndFilterCard extends StatelessWidget {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: selectedStatus,
-              decoration: const InputDecoration(
-                labelText: 'Status Filter',
-              ),
+              decoration: const InputDecoration(labelText: 'Status Filter'),
               items: const [
                 DropdownMenuItem(value: 'all', child: Text('All Projects')),
                 DropdownMenuItem(value: 'contract', child: Text('Contract')),
@@ -558,6 +551,12 @@ class _ProjectListCard extends StatelessWidget {
                               color: const Color(0xFFC2410C),
                               backgroundColor: const Color(0xFFFFF7ED),
                             ),
+                            if (project.wasCreatedFromQuote)
+                              const _MiniPill(
+                                label: 'CREATED FROM QUOTE',
+                                color: Color(0xFF047857),
+                                backgroundColor: Color(0xFFECFDF5),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -578,7 +577,9 @@ class _ProjectListCard extends StatelessWidget {
                           children: [
                             _MoneyBucket(
                               label: 'Contract',
-                              value: canViewFinancials ? formatMoney(project.contractAmount) : 'Hidden',
+                              value: canViewFinancials
+                                  ? formatMoney(project.contractAmount)
+                                  : 'Hidden',
                             ),
                             _MoneyBucket(
                               label: 'Cost',
@@ -599,11 +600,7 @@ class _ProjectListCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Icon(
-                  Icons.chevron_right,
-                  color: accentColor,
-                  size: 30,
-                ),
+                Icon(Icons.chevron_right, color: accentColor, size: 30),
               ],
             ),
           ),
@@ -649,10 +646,7 @@ class _MiniPill extends StatelessWidget {
 }
 
 class _MoneyBucket extends StatelessWidget {
-  const _MoneyBucket({
-    required this.label,
-    required this.value,
-  });
+  const _MoneyBucket({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -697,10 +691,7 @@ class _MoneyBucket extends StatelessWidget {
 }
 
 class _StateCard extends StatelessWidget {
-  const _StateCard({
-    required this.title,
-    required this.body,
-  });
+  const _StateCard({required this.title, required this.body});
 
   final String title;
   final String body;

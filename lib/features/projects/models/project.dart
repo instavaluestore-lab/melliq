@@ -3,6 +3,7 @@ class Project {
     required this.id,
     required this.companyId,
     required this.customerId,
+    this.sourceQuoteId,
     required this.projectName,
     required this.projectNumber,
     required this.status,
@@ -24,6 +25,7 @@ class Project {
   final String id;
   final String companyId;
   final String customerId;
+  final String? sourceQuoteId;
   final String projectName;
   final String projectNumber;
   final String status;
@@ -40,6 +42,10 @@ class Project {
   final double estimatedProfit;
   final double actualProfit;
   final String? notes;
+
+  bool get wasCreatedFromQuote {
+    return sourceQuoteId != null && sourceQuoteId!.trim().isNotEmpty;
+  }
 
   String get displayLocation {
     final cityState = [

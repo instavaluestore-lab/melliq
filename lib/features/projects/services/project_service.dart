@@ -34,6 +34,7 @@ class ProjectService {
           id,
           company_id,
           customer_id,
+          source_quote_id,
           project_number,
           name,
           status,
@@ -56,11 +57,7 @@ class ProjectService {
         .isFilter('archived_at', null)
         .order('created_at', ascending: false);
 
-    return response
-        .map<Project>(
-          (item) => Project.fromMap(item),
-        )
-        .toList();
+    return response.map<Project>((item) => Project.fromMap(item)).toList();
   }
 
   Future<List<Project>> getProjectsForCompany({
@@ -72,6 +69,7 @@ class ProjectService {
           id,
           company_id,
           customer_id,
+          source_quote_id,
           project_number,
           name,
           status,
@@ -93,11 +91,7 @@ class ProjectService {
         .isFilter('archived_at', null)
         .order('created_at', ascending: false);
 
-    return response
-        .map<Project>(
-          (item) => Project.fromMap(item),
-        )
-        .toList();
+    return response.map<Project>((item) => Project.fromMap(item)).toList();
   }
 
   Future<Project> getProjectById(String projectId) async {
@@ -107,6 +101,7 @@ class ProjectService {
           id,
           company_id,
           customer_id,
+          source_quote_id,
           project_number,
           name,
           status,
@@ -134,15 +129,13 @@ class ProjectService {
     required String projectId,
     required String status,
   }) async {
-    await _supabase.from('projects').update({
-      'status': status,
-    }).eq('id', projectId);
+    await _supabase
+        .from('projects')
+        .update({'status': status})
+        .eq('id', projectId);
   }
 
-
-  Future<String> getNextProjectNumber({
-    required String companyId,
-  }) async {
+  Future<String> getNextProjectNumber({required String companyId}) async {
     final response = await _supabase
         .from('projects')
         .select('project_number')
@@ -273,15 +266,18 @@ class ProjectService {
       (total, project) => total + _toDouble(project['actual_profit']),
     );
 
-    final totalAnnualProjectProfit = rows.where((project) {
-      final completedDate = _parseDate(project['completed_date']);
-      final createdAt = _parseDate(project['created_at']);
+    final totalAnnualProjectProfit = rows
+        .where((project) {
+          final completedDate = _parseDate(project['completed_date']);
+          final createdAt = _parseDate(project['created_at']);
 
-      return completedDate?.year == currentYear || createdAt?.year == currentYear;
-    }).fold<double>(
-      0,
-      (total, project) => total + _toDouble(project['actual_profit']),
-    );
+          return completedDate?.year == currentYear ||
+              createdAt?.year == currentYear;
+        })
+        .fold<double>(
+          0,
+          (total, project) => total + _toDouble(project['actual_profit']),
+        );
 
     return ProjectDashboardMetrics(
       activeProjects: activeProjects,
