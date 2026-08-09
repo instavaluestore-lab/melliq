@@ -236,6 +236,15 @@ class QuoteProposalScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  const _ProposalTermsCard(),
+                  const SizedBox(height: 18),
+                  const _ProposalAcceptanceCard(),
+                  const SizedBox(height: 18),
+                  _ProposalFooter(
+                    preparedBy: companyContext.displayBrandName,
+                    poweredByLupinusBuild: companyContext.poweredByLupinusBuild,
+                  ),
                 ],
               ),
             ),
@@ -385,6 +394,137 @@ class _ProposalTotalRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProposalTermsCard extends StatelessWidget {
+  const _ProposalTermsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Proposal Terms',
+            style: TextStyle(
+              color: Color(0xFF111827),
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 10),
+          Text(
+            '• Pricing is based on the scope, quantities, and selections shown in this proposal.\n'
+            '• Changes to size, site conditions, materials, engineering, permits, or installation requirements may require a revised proposal.\n'
+            '• Work should not begin until the proposal is accepted and any required deposit or authorization is received.\n'
+            '• Permit, engineering, utility, or access requirements may affect schedule and final scope.',
+            style: TextStyle(
+              color: Color(0xFF475569),
+              fontSize: 13,
+              height: 1.45,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProposalAcceptanceCard extends StatelessWidget {
+  const _ProposalAcceptanceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Customer Acceptance',
+            style: TextStyle(
+              color: Color(0xFF111827),
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 18),
+          _SignatureLine(label: 'Customer Name'),
+          SizedBox(height: 16),
+          _SignatureLine(label: 'Customer Signature'),
+          SizedBox(height: 16),
+          _SignatureLine(label: 'Date'),
+        ],
+      ),
+    );
+  }
+}
+
+class _SignatureLine extends StatelessWidget {
+  const _SignatureLine({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(height: 1, color: const Color(0xFFCBD5E1)),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProposalFooter extends StatelessWidget {
+  const _ProposalFooter({
+    required this.preparedBy,
+    required this.poweredByLupinusBuild,
+  });
+
+  final String preparedBy;
+  final bool poweredByLupinusBuild;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        poweredByLupinusBuild
+            ? 'Prepared by $preparedBy • Powered by LupinusBuild'
+            : 'Prepared by $preparedBy',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
