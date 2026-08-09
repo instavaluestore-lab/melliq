@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../company/models/company_context.dart';
 import '../../customers/models/customer.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 import '../services/quote_proposal_pdf_service.dart';
+import '../services/quote_service.dart';
 
 class QuoteProposalScreen extends StatelessWidget {
   const QuoteProposalScreen({
@@ -49,6 +51,39 @@ class QuoteProposalScreen extends StatelessWidget {
     return '$month/$day/$year';
   }
 
+  Future<void> _updateQuoteStatus(BuildContext context, String status) async {
+    try {
+      await QuoteService(
+        Supabase.instance.client,
+      ).updateQuoteStatus(quoteId: quote.id, status: status);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Quote marked as ${_statusActionLabel(status)}.'),
+        ),
+      );
+
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update quote status: $error')),
+      );
+    }
+  }
+
+  String _statusActionLabel(String status) {
+    return switch (status) {
+      'sent' => 'sent',
+      'approved' => 'approved',
+      'rejected' => 'rejected',
+      _ => status,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasDiscount = quote.discountAmount > 0;
@@ -60,6 +95,13 @@ class QuoteProposalScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _ProposalWorkflowCard(
+            quote: quote,
+            onMarkSent: () => _updateQuoteStatus(context, 'sent'),
+            onMarkApproved: () => _updateQuoteStatus(context, 'approved'),
+            onMarkRejected: () => _updateQuoteStatus(context, 'rejected'),
+          ),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
@@ -266,6 +308,126 @@ class QuoteProposalScreen extends StatelessWidget {
   }
 }
 
+class _ProposalWorkflowCard extends StatelessWidget {
+  const _ProposalWorkflowCard({
+    required this.quote,
+    required this.onMarkSent,
+    required this.onMarkApproved,
+    required this.onMarkRejected,
+  });
+
+  final Quote quote;
+  final VoidCallback onMarkSent;
+  final VoidCallback onMarkApproved;
+  final VoidCallback onMarkRejected;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = quote.status;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.route_outlined, color: Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              Text(
+                'Proposal Status: ${quote.statusLabel}',
+                style: const TextStyle(
+                  color: Color(0xFF111827),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (status == 'draft')
+                FilledButton.icon(
+                  onPressed: onMarkSent,
+                  icon: const Icon(Icons.send_outlined),
+                  label: const Text('Mark as Sent'),
+                ),
+              if (status == 'sent') ...[
+                FilledButton.icon(
+                  onPressed: onMarkApproved,
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Approve'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onMarkRejected,
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Reject'),
+                ),
+              ],
+              if (status == 'approved')
+                const _ProposalStatusPill(
+                  label: 'Approved',
+                  icon: Icons.check_circle_outline,
+                ),
+              if (status == 'rejected')
+                const _ProposalStatusPill(
+                  label: 'Rejected',
+                  icon: Icons.cancel_outlined,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProposalStatusPill extends StatelessWidget {
+  const _ProposalStatusPill({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF334155),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProposalCustomerCard extends StatelessWidget {
   const _ProposalCustomerCard({required this.customer});
 
@@ -397,15 +559,10 @@ class _ProposalLineItemRow extends StatelessWidget {
 }
 
 class _ProposalPill extends StatelessWidget {
-  const _ProposalPill({
-    required this.label,
-    required this.value,
-    this.isBold = false,
-  });
+  const _ProposalPill({required this.label, required this.value});
 
   final String label;
   final String value;
-  final bool isBold;
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +578,7 @@ class _ProposalPill extends StatelessWidget {
         style: TextStyle(
           color: const Color(0xFF334155),
           fontSize: 12,
-          fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

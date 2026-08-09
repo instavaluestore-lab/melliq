@@ -104,7 +104,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
 
       if (!mounted) return;
 
-      await Navigator.of(context).push(
+      final didUpdateStatus = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => QuoteProposalScreen(
             companyContext: companyContext,
@@ -114,6 +114,10 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
           ),
         ),
       );
+
+      if (didUpdateStatus == true) {
+        await loadQuotes();
+      }
     } catch (error) {
       if (!mounted) return;
 

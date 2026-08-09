@@ -260,6 +260,25 @@ class QuoteService {
     return Quote.fromMap(quoteRow).copyWith(lineItems: savedLineItems);
   }
 
+  Future<Quote> updateQuoteStatus({
+    required String quoteId,
+    required String status,
+  }) async {
+    final quoteRow = await _supabase
+        .from('quotes')
+        .update({
+          'status': status,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', quoteId)
+        .select()
+        .single();
+
+    final savedLineItems = await getQuoteLineItems(quoteId: quoteId);
+
+    return Quote.fromMap(quoteRow).copyWith(lineItems: savedLineItems);
+  }
+
   Future<void> markQuoteConverted({
     required String quoteId,
     required String projectId,

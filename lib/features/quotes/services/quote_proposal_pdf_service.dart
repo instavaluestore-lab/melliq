@@ -26,6 +26,8 @@ class QuoteProposalPdfService {
           _buildHeader(companyContext: companyContext, quote: quote),
           pw.SizedBox(height: 20),
           _buildQuoteSummary(quote),
+          pw.SizedBox(height: 14),
+          _buildCustomer(customer),
           pw.SizedBox(height: 18),
           _buildIncludedItems(lineItems),
           pw.SizedBox(height: 18),
