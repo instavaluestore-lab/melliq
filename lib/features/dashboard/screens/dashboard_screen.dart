@@ -386,7 +386,17 @@ class _CompanyContextCard extends StatelessWidget {
           runSpacing: 12,
           spacing: 12,
           children: [
+            _ContextChip(
+              label: 'Workspace',
+              value: companyContext.displayWorkspaceName,
+            ),
+            _ContextChip(
+              label: 'Brand',
+              value: companyContext.displayBrandName,
+            ),
             _ContextChip(label: 'Company', value: companyContext.companyName),
+            if (companyContext.poweredByLupinusBuild)
+              const _ContextChip(label: 'Powered By', value: 'LupinusBuild'),
             _ContextChip(label: 'User', value: companyContext.userEmail),
             _ContextChip(label: 'Role', value: companyContext.roleLabel),
             _ContextChip(
