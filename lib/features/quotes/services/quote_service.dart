@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../audit/services/audit_log_service.dart';
+
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 
@@ -264,6 +266,15 @@ class QuoteService {
     required String quoteId,
     required String status,
   }) async {
+    final existingQuoteRow = await _supabase
+        .from('quotes')
+        .select()
+        .eq('id', quoteId)
+        .single();
+
+    final existingQuote = Quote.fromMap(existingQuoteRow);
+    final oldStatus = existingQuote.status;
+
     final quoteRow = await _supabase
         .from('quotes')
         .update({
@@ -274,9 +285,35 @@ class QuoteService {
         .select()
         .single();
 
+    final updatedQuote = Quote.fromMap(quoteRow);
+
+    if (oldStatus != status) {
+      try {
+        await AuditLogService(_supabase).logAction(
+          companyId: updatedQuote.companyId,
+          recordType: 'quote',
+          recordId: updatedQuote.id,
+          action: 'status_changed',
+          summary:
+              'Quote ${updatedQuote.quoteNumber} status changed from ${existingQuote.statusLabel} to ${updatedQuote.statusLabel}.',
+          fieldName: 'status',
+          oldValue: oldStatus,
+          newValue: status,
+          metadata: {
+            'quote_id': updatedQuote.id,
+            'quote_number': updatedQuote.quoteNumber,
+            'old_status': oldStatus,
+            'new_status': status,
+          },
+        );
+      } catch (_) {
+        // Status changes should not fail just because audit logging failed.
+      }
+    }
+
     final savedLineItems = await getQuoteLineItems(quoteId: quoteId);
 
-    return Quote.fromMap(quoteRow).copyWith(lineItems: savedLineItems);
+    return updatedQuote.copyWith(lineItems: savedLineItems);
   }
 
   Future<void> markQuoteConverted({
