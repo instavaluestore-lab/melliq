@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../../company/models/company_context.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
+import '../services/quote_proposal_pdf_service.dart';
 
 class QuoteProposalScreen extends StatelessWidget {
   const QuoteProposalScreen({
@@ -58,14 +60,26 @@ class QuoteProposalScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'PDF export is coming next. This proposal is ready for print/export foundation.',
-                    ),
-                  ),
-                );
+              onPressed: () async {
+                try {
+                  final pdfBytes = await const QuoteProposalPdfService()
+                      .buildProposalPdf(
+                        companyContext: companyContext,
+                        quote: quote,
+                        lineItems: lineItems,
+                      );
+
+                  await Printing.layoutPdf(
+                    name: '${quote.quoteNumber}-proposal.pdf',
+                    onLayout: (_) async => pdfBytes,
+                  );
+                } catch (error) {
+                  if (!context.mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not export PDF: $error')),
+                  );
+                }
               },
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: const Text('Export PDF'),
