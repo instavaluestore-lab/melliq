@@ -55,6 +55,23 @@ class QuoteProposalScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'PDF export is coming next. This proposal is ready for print/export foundation.',
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Export PDF'),
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
             elevation: 0,
             color: Colors.white,
