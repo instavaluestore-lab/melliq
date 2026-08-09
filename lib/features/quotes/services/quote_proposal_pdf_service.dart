@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../company/models/company_context.dart';
+import '../../customers/models/customer.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 
@@ -14,6 +15,7 @@ class QuoteProposalPdfService {
     required CompanyContext companyContext,
     required Quote quote,
     required List<QuoteLineItem> lineItems,
+    required Customer customer,
   }) async {
     final document = pw.Document();
 
@@ -153,6 +155,66 @@ class QuoteProposalPdfService {
     );
   }
 
+  pw.Widget _buildCustomer(Customer customer) {
+    final companyName = customer.companyName?.trim();
+    final email = customer.email?.trim();
+    final phone = customer.phone?.trim();
+    final location = customer.location;
+
+    final detailLines = <String>[
+      if (companyName != null &&
+          companyName.isNotEmpty &&
+          companyName != customer.displayName)
+        companyName,
+      if (email != null && email.isNotEmpty) 'Email: $email',
+      if (phone != null && phone.isNotEmpty) 'Phone: $phone',
+      if (location != 'No location') 'Location: $location',
+    ];
+
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        border: pw.Border.all(color: PdfColors.grey300),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Prepared For',
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey600,
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            customer.displayName,
+            style: pw.TextStyle(
+              fontSize: 13,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey900,
+            ),
+          ),
+          if (detailLines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            pw.Text(
+              detailLines.join('\n'),
+              style: const pw.TextStyle(
+                fontSize: 9,
+                color: PdfColors.grey800,
+                lineSpacing: 2,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   pw.Widget _buildIncludedItems(List<QuoteLineItem> lineItems) {
     if (lineItems.isEmpty) {
       return pw.Column(
@@ -176,11 +238,9 @@ class QuoteProposalPdfService {
         pw.Table(
           border: pw.TableBorder.all(color: PdfColors.grey300),
           columnWidths: const {
-            0: pw.FlexColumnWidth(3),
+            0: pw.FlexColumnWidth(4),
             1: pw.FlexColumnWidth(1),
             2: pw.FlexColumnWidth(1),
-            3: pw.FlexColumnWidth(1.5),
-            4: pw.FlexColumnWidth(1.5),
           },
           children: [
             pw.TableRow(
@@ -189,8 +249,6 @@ class QuoteProposalPdfService {
                 _tableHeader('Item'),
                 _tableHeader('Qty'),
                 _tableHeader('Unit'),
-                _tableHeader('Unit Price'),
-                _tableHeader('Line Total'),
               ],
             ),
             ...lineItems.map(
@@ -204,8 +262,6 @@ class QuoteProposalPdfService {
                   ),
                   _tableCell(item.quantity.toStringAsFixed(2)),
                   _tableCell(item.unit),
-                  _tableCell(_formatMoney(item.unitPrice)),
-                  _tableCell(_formatMoney(item.totalPrice)),
                 ],
               ),
             ),
@@ -227,12 +283,6 @@ class QuoteProposalPdfService {
         ),
         child: pw.Column(
           children: [
-            _totalRow('Subtotal', _formatMoney(quote.subtotal)),
-            if (quote.markupAmount > 0)
-              _totalRow(
-                'Project Overhead & Profit',
-                _formatMoney(quote.markupAmount),
-              ),
             if (quote.discountAmount > 0)
               _totalRow('Discount', '-${_formatMoney(quote.discountAmount)}'),
             if (quote.taxAmount > 0)

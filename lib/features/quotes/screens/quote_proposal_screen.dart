@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
 import '../../company/models/company_context.dart';
+import '../../customers/models/customer.dart';
 import '../models/quote.dart';
 import '../models/quote_line_item.dart';
 import '../services/quote_proposal_pdf_service.dart';
@@ -12,11 +13,13 @@ class QuoteProposalScreen extends StatelessWidget {
     required this.companyContext,
     required this.quote,
     required this.lineItems,
+    required this.customer,
   });
 
   final CompanyContext companyContext;
   final Quote quote;
   final List<QuoteLineItem> lineItems;
+  final Customer customer;
 
   String _formatMoney(double value) {
     final negative = value < 0;
@@ -67,6 +70,7 @@ class QuoteProposalScreen extends StatelessWidget {
                         companyContext: companyContext,
                         quote: quote,
                         lineItems: lineItems,
+                        customer: customer,
                       );
 
                   await Printing.layoutPdf(
@@ -184,6 +188,8 @@ class QuoteProposalScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 18),
+                  _ProposalCustomerCard(customer: customer),
                   if (quote.notes != null &&
                       quote.notes!.trim().isNotEmpty) ...[
                     const SizedBox(height: 14),
@@ -223,15 +229,6 @@ class QuoteProposalScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Divider(height: 1),
                   const SizedBox(height: 18),
-                  _ProposalTotalRow(
-                    label: 'Subtotal',
-                    value: _formatMoney(quote.subtotal),
-                  ),
-                  if (quote.markupAmount > 0)
-                    _ProposalTotalRow(
-                      label: 'Project Overhead & Profit',
-                      value: _formatMoney(quote.markupAmount),
-                    ),
                   if (hasDiscount)
                     _ProposalTotalRow(
                       label: 'Discount',
@@ -249,24 +246,6 @@ class QuoteProposalScreen extends StatelessWidget {
                     isTotal: true,
                   ),
                   const SizedBox(height: 24),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Text(
-                      'This proposal view is customer-facing. Internal cost, profit, and margin details are intentionally hidden.',
-                      style: TextStyle(
-                        color: Color(0xFF475569),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 18),
                   const _ProposalTermsCard(),
                   const SizedBox(height: 18),
@@ -281,6 +260,79 @@ class QuoteProposalScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProposalCustomerCard extends StatelessWidget {
+  const _ProposalCustomerCard({required this.customer});
+
+  final Customer customer;
+
+  @override
+  Widget build(BuildContext context) {
+    final companyName = customer.companyName?.trim();
+    final email = customer.email?.trim();
+    final phone = customer.phone?.trim();
+    final location = customer.location;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Prepared For',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            customer.displayName,
+            style: const TextStyle(
+              color: Color(0xFF111827),
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (companyName != null &&
+              companyName.isNotEmpty &&
+              companyName != customer.displayName) ...[
+            const SizedBox(height: 4),
+            Text(
+              companyName,
+              style: const TextStyle(
+                color: Color(0xFF334155),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (email != null && email.isNotEmpty)
+                _ProposalPill(label: 'Email', value: email),
+              if (phone != null && phone.isNotEmpty)
+                _ProposalPill(label: 'Phone', value: phone),
+              if (location != 'No location')
+                _ProposalPill(label: 'Location', value: location),
+            ],
+          ),
         ],
       ),
     );
@@ -336,15 +388,6 @@ class _ProposalLineItemRow extends StatelessWidget {
                 value: item.quantity.toStringAsFixed(2),
               ),
               _ProposalPill(label: 'Unit', value: item.unit),
-              _ProposalPill(
-                label: 'Unit Price',
-                value: formatMoney(item.unitPrice),
-              ),
-              _ProposalPill(
-                label: 'Line Total',
-                value: formatMoney(item.totalPrice),
-                isBold: true,
-              ),
             ],
           ),
         ],

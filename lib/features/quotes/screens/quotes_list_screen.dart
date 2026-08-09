@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../company/models/company_context.dart';
+import '../../customers/services/customer_service.dart';
 import '../models/quote.dart';
 import '../services/quote_service.dart';
 import 'quote_form_screen.dart';
@@ -18,6 +19,7 @@ class QuotesListScreen extends StatefulWidget {
 
 class _QuotesListScreenState extends State<QuotesListScreen> {
   late final QuoteService quoteService;
+  late final CustomerService customerService;
 
   bool isLoading = true;
   String? errorMessage;
@@ -29,6 +31,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
   void initState() {
     super.initState();
     quoteService = QuoteService(Supabase.instance.client);
+    customerService = CustomerService(Supabase.instance.client);
     loadQuotes();
   }
 
@@ -97,6 +100,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
   Future<void> _openQuoteProposal(Quote quote) async {
     try {
       final lineItems = await quoteService.getQuoteLineItems(quoteId: quote.id);
+      final customer = await customerService.getCustomerById(quote.customerId);
 
       if (!mounted) return;
 
@@ -106,6 +110,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
             companyContext: companyContext,
             quote: quote.copyWith(lineItems: lineItems),
             lineItems: lineItems,
+            customer: customer,
           ),
         ),
       );
