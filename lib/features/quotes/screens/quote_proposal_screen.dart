@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../audit/models/record_audit_log.dart';
+import '../../audit/services/audit_log_service.dart';
 import '../../company/models/company_context.dart';
 import '../../customers/models/customer.dart';
 import '../models/quote.dart';
@@ -101,6 +103,8 @@ class QuoteProposalScreen extends StatelessWidget {
             onMarkApproved: () => _updateQuoteStatus(context, 'approved'),
             onMarkRejected: () => _updateQuoteStatus(context, 'rejected'),
           ),
+          const SizedBox(height: 12),
+          _ProposalStatusHistoryCard(quote: quote),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
@@ -302,6 +306,262 @@ class QuoteProposalScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProposalStatusHistoryCard extends StatelessWidget {
+  const _ProposalStatusHistoryCard({required this.quote});
+
+  final Quote quote;
+
+  String _formatDateTime(DateTime date) {
+    final local = date.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final year = local.year.toString();
+    final hour = local.hour == 0
+        ? 12
+        : local.hour > 12
+        ? local.hour - 12
+        : local.hour;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final suffix = local.hour >= 12 ? 'PM' : 'AM';
+
+    return '$month/$day/$year $hour:$minute $suffix';
+  }
+
+  String _fallbackActorLabel(String? userId) {
+    if (userId == null || userId.trim().isEmpty) {
+      return 'Unknown user';
+    }
+
+    final value = userId.trim();
+    if (value.length <= 8) return value;
+
+    return 'User ${value.substring(0, 8)}';
+  }
+
+  Future<_ProposalStatusHistoryData> _loadStatusHistory() async {
+    final loadedLogs = await AuditLogService(
+      Supabase.instance.client,
+    ).getLogsForRecord(recordType: 'quote', recordId: quote.id, limit: 25);
+
+    final statusLogs = loadedLogs
+        .where((log) => log.action == 'status_changed')
+        .toList();
+
+    final userLabels = await _loadUserLabels(statusLogs);
+
+    return _ProposalStatusHistoryData(logs: statusLogs, userLabels: userLabels);
+  }
+
+  Future<Map<String, String>> _loadUserLabels(List<RecordAuditLog> logs) async {
+    final userIds = logs
+        .map((log) => log.createdBy?.trim())
+        .whereType<String>()
+        .where((userId) => userId.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (userIds.isEmpty) return {};
+
+    final labels = <String, String>{};
+
+    try {
+      final profileRows = await Supabase.instance.client
+          .from('profiles')
+          .select('id, full_name, email')
+          .inFilter('id', userIds);
+
+      for (final row in profileRows) {
+        final map = Map<String, dynamic>.from(row);
+        final userId = (map['id'] as String?)?.trim();
+        if (userId == null || userId.isEmpty) continue;
+
+        final fullName = (map['full_name'] as String?)?.trim();
+        final email = (map['email'] as String?)?.trim();
+
+        if (fullName != null && fullName.isNotEmpty) {
+          labels[userId] = fullName;
+        } else if (email != null && email.isNotEmpty) {
+          labels[userId] = email;
+        }
+      }
+    } catch (_) {
+      // Continue to company member fallback.
+    }
+
+    final missingUserIds = userIds
+        .where((userId) => !labels.containsKey(userId))
+        .toList();
+
+    if (missingUserIds.isEmpty) return labels;
+
+    try {
+      final memberRows = await Supabase.instance.client
+          .from('company_members')
+          .select(
+            'user_id, profiles!company_members_user_id_fkey(full_name, email)',
+          )
+          .eq('company_id', quote.companyId)
+          .inFilter('user_id', missingUserIds);
+
+      for (final row in memberRows) {
+        final map = Map<String, dynamic>.from(row);
+        final userId = (map['user_id'] as String?)?.trim();
+        if (userId == null || userId.isEmpty) continue;
+
+        final profile = map['profiles'] == null
+            ? <String, dynamic>{}
+            : Map<String, dynamic>.from(map['profiles'] as Map);
+
+        final fullName = (profile['full_name'] as String?)?.trim();
+        final email = (profile['email'] as String?)?.trim();
+
+        if (fullName != null && fullName.isNotEmpty) {
+          labels[userId] = fullName;
+        } else if (email != null && email.isNotEmpty) {
+          labels[userId] = email;
+        }
+      }
+    } catch (_) {
+      // Keep fallback user-id labels if profile lookup is unavailable.
+    }
+
+    return labels;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_ProposalStatusHistoryData>(
+      future: _loadStatusHistory(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final logs = data?.logs ?? const <RecordAuditLog>[];
+        final userLabels = data?.userLabels ?? const <String, String>{};
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.history_outlined, color: Color(0xFF2563EB)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Status History',
+                    style: TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const Text(
+                  'Loading status history...',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                )
+              else if (snapshot.hasError)
+                Text(
+                  'Could not load status history: ${snapshot.error}',
+                  style: const TextStyle(
+                    color: Color(0xFF991B1B),
+                    fontSize: 13,
+                  ),
+                )
+              else if (logs.isEmpty)
+                const Text(
+                  'No status changes have been recorded yet.',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                )
+              else
+                ...logs.map((log) {
+                  final createdBy = log.createdBy?.trim();
+                  final actor =
+                      userLabels[createdBy] ??
+                      _fallbackActorLabel(log.createdBy);
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _ProposalStatusHistoryRow(
+                      summary: log.summary,
+                      actor: actor,
+                      timestamp: _formatDateTime(log.createdAt),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProposalStatusHistoryData {
+  const _ProposalStatusHistoryData({
+    required this.logs,
+    required this.userLabels,
+  });
+
+  final List<RecordAuditLog> logs;
+  final Map<String, String> userLabels;
+}
+
+class _ProposalStatusHistoryRow extends StatelessWidget {
+  const _ProposalStatusHistoryRow({
+    required this.summary,
+    required this.actor,
+    required this.timestamp,
+  });
+
+  final String summary;
+  final String actor;
+  final String timestamp;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            summary,
+            style: const TextStyle(
+              color: Color(0xFF111827),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$actor • $timestamp',
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
