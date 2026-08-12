@@ -74,8 +74,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     });
   }
 
+  bool get isPersistedApprovedQuote => widget.quote?.status == 'approved';
+
   bool get canConvertToProject {
     return isEditing &&
+        isPersistedApprovedQuote &&
         selectedStatus == 'approved' &&
         widget.quote?.isConverted != true;
   }
@@ -630,9 +633,9 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
       return;
     }
 
-    if (selectedStatus != 'approved') {
+    if (!isPersistedApprovedQuote || selectedStatus != 'approved') {
       setState(() {
-        errorMessage = 'Only approved quotes can be converted to projects.';
+        errorMessage = 'Approve the quote before converting it to a project.';
       });
       return;
     }
@@ -1274,10 +1277,14 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         : const Icon(Icons.save),
                     label: Text(isSaving ? 'Saving...' : 'Save Quote'),
                   ),
-                  if (canConvertToProject) ...[
+                  if (isEditing && widget.quote?.isConverted != true) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
-                      onPressed: isSaving || isConverting || customers.isEmpty
+                      onPressed:
+                          !canConvertToProject ||
+                              isSaving ||
+                              isConverting ||
+                              customers.isEmpty
                           ? null
                           : _convertApprovedQuoteToProject,
                       icon: isConverting
@@ -1293,6 +1300,15 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             : 'Convert Approved Quote to Project',
                       ),
                     ),
+                    if (!canConvertToProject) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Approve the quote before converting it to a project.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ],
                   const SizedBox(height: 80),
                 ],
