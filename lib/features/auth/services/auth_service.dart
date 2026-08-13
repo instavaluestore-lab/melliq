@@ -17,6 +17,20 @@ class AuthService {
     );
   }
 
+  Future<void> requestPasswordReset({
+    required String email,
+    required String redirectTo,
+  }) async {
+    await _supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: redirectTo,
+    );
+  }
+
+  Future<void> updatePassword(String password) async {
+    await _supabase.auth.updateUser(UserAttributes(password: password));
+  }
+
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
