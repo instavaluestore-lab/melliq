@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../dashboard/screens/dashboard_screen.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -54,10 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
         return;
       }
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
     } on AuthException catch (error) {
       setState(() {
         errorMessage = error.message;

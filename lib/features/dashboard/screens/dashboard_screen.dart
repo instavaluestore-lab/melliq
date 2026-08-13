@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../auth/screens/login_screen.dart';
-
 import '../../company/models/company_context.dart';
 import '../../company/services/company_service.dart';
 import '../../customers/screens/customers_list_screen.dart';
@@ -72,13 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> handleLogout() async {
     await Supabase.instance.client.auth.signOut();
-
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
   }
 
   String _formatMoney(double value) {
