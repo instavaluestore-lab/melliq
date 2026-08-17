@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../validation/auth_validation.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, this.initialEmail = ''});
@@ -128,19 +129,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 labelText: 'Email',
                                 prefixIcon: Icon(Icons.email_outlined),
                               ),
-                              validator: (value) {
-                                final email = value?.trim() ?? '';
-
-                                if (email.isEmpty) {
-                                  return 'Enter your email address';
-                                }
-
-                                if (!email.contains('@')) {
-                                  return 'Enter a valid email address';
-                                }
-
-                                return null;
-                              },
+                              validator: validateAccountEmail,
                               onFieldSubmitted: (_) {
                                 if (!isSending) {
                                   requestPasswordReset();

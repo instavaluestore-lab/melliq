@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/reset_password_screen.dart';
+import 'features/auth/validation/auth_validation.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 
 class LupinusBuildApp extends StatelessWidget {
@@ -46,9 +47,9 @@ class _AuthGateState extends State<_AuthGate> {
     final initialUri = Uri.base;
 
     currentSession = auth.currentSession;
-    isProcessingAuthCallback = initialUri.queryParameters.containsKey('code');
+    isProcessingAuthCallback = hasAuthCodeCallback(initialUri);
 
-    final callbackError = initialUri.queryParameters['error_description'];
+    final callbackError = readAuthCallbackError(initialUri);
 
     if (callbackError != null && callbackError.trim().isNotEmpty) {
       authCallbackError = callbackError;
@@ -86,8 +87,9 @@ class _AuthGateState extends State<_AuthGate> {
 
       setState(() {
         currentSession = response.session;
-        isPasswordRecovery =
-            response.redirectType == AuthChangeEvent.passwordRecovery.name;
+        isPasswordRecovery = isPasswordRecoveryRedirectType(
+          response.redirectType,
+        );
         isProcessingAuthCallback = false;
         authCallbackError = null;
       });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../validation/auth_validation.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, required this.onPasswordUpdated});
@@ -134,13 +135,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             ),
                           ),
                         ),
-                        validator: (value) {
-                          if ((value ?? '').length < 8) {
-                            return 'Use at least 8 characters';
-                          }
-
-                          return null;
-                        },
+                        validator: validateNewPassword,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -168,11 +163,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ),
                         validator: (value) {
-                          if (value != passwordController.text) {
-                            return 'Passwords do not match';
-                          }
-
-                          return null;
+                          return validatePasswordConfirmation(
+                            value: value,
+                            password: passwordController.text,
+                          );
                         },
                         onFieldSubmitted: (_) {
                           if (!isSaving) {
