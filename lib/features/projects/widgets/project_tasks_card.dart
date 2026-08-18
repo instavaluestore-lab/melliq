@@ -10,9 +10,11 @@ class ProjectTasksCard extends StatelessWidget {
     required this.assignees,
     required this.enabled,
     required this.canAddTask,
+    required this.canAssignTask,
     required this.canCompleteTask,
     required this.canDeleteTask,
     required this.onAddTask,
+    required this.onAssignTask,
     required this.onToggleTask,
     required this.onDeleteTask,
   });
@@ -21,9 +23,11 @@ class ProjectTasksCard extends StatelessWidget {
   final List<ProjectTaskAssignee> assignees;
   final bool enabled;
   final bool canAddTask;
+  final bool canAssignTask;
   final bool canCompleteTask;
   final bool canDeleteTask;
   final VoidCallback onAddTask;
+  final ValueChanged<ProjectTask> onAssignTask;
   final ValueChanged<ProjectTask> onToggleTask;
   final ValueChanged<ProjectTask> onDeleteTask;
 
@@ -93,8 +97,10 @@ class ProjectTasksCard extends StatelessWidget {
                     task: task,
                     assignees: assignees,
                     enabled: enabled,
+                    onAssign: () => onAssignTask(task),
                     onToggle: () => onToggleTask(task),
                     onDelete: () => onDeleteTask(task),
+                    canAssignTask: canAssignTask,
                     canCompleteTask: canCompleteTask,
                     canDeleteTask: canDeleteTask,
                   ),
@@ -357,8 +363,10 @@ class _ProjectTaskTile extends StatelessWidget {
     required this.task,
     required this.assignees,
     required this.enabled,
+    required this.canAssignTask,
     required this.canCompleteTask,
     required this.canDeleteTask,
+    required this.onAssign,
     required this.onToggle,
     required this.onDelete,
   });
@@ -366,8 +374,10 @@ class _ProjectTaskTile extends StatelessWidget {
   final ProjectTask task;
   final List<ProjectTaskAssignee> assignees;
   final bool enabled;
+  final bool canAssignTask;
   final bool canCompleteTask;
   final bool canDeleteTask;
+  final VoidCallback onAssign;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
@@ -422,6 +432,12 @@ class _ProjectTaskTile extends StatelessWidget {
                   ),
                 ),
               ),
+              if (canAssignTask)
+                IconButton(
+                  onPressed: enabled ? onAssign : null,
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  tooltip: 'Assign task',
+                ),
               IconButton(
                 onPressed: enabled && canDeleteTask ? onDelete : null,
                 icon: const Icon(Icons.delete_outline),

@@ -172,6 +172,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         projectId: project.id,
       );
 
+      final freshProjectTaskAssignees =
+          await projectTaskService.getAssignableMembers(
+            companyId: widget.companyContext.companyId,
+          );
+
       final freshProjectFiles = await projectFileService.getFilesForProject(
         companyId: widget.companyContext.companyId,
         projectId: project.id,
@@ -196,6 +201,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         stageCosts = freshStageCosts;
         stageCostItems = freshStageCostItems;
         projectTasks = freshProjectTasks;
+        projectTaskAssignees = freshProjectTaskAssignees;
         projectFiles = freshProjectFiles;
         projectMaterials = freshProjectMaterials;
         projectActivityLogs = freshProjectActivityLogs;
@@ -804,7 +810,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       context: context,
       builder: (context) {
         return AddProjectTaskDialog(
-          assignees: projectTaskAssignees,
+          assignees: widget.companyContext.canAssignTasks
+              ? projectTaskAssignees
+              : const [],
           onSave:
               ({
                 required title,
@@ -838,6 +846,81 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       title: 'Task added: ${createdTask.title}',
       body: createdTask.description,
     );
+  }
+
+  Future<void> assignProjectTask(ProjectTask task) async {
+    if (!widget.companyContext.canAssignTasks) return;
+
+    const unassignedValue = '__unassigned__';
+
+    final selectedValue = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: Text('Assign ${task.title}'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(unassignedValue),
+              child: const Text('Unassigned'),
+            ),
+            ...projectTaskAssignees.map(
+              (assignee) => SimpleDialogOption(
+                onPressed: () => Navigator.of(context).pop(assignee.userId),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(assignee.displayName),
+                  subtitle: Text(assignee.subtitle),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedValue == null) return;
+
+    final assignedTo = selectedValue == unassignedValue ? null : selectedValue;
+    if (assignedTo == task.assignedTo) return;
+
+    try {
+      final updatedTask = await projectTaskService.assignTask(
+        taskId: task.id,
+        assignedTo: assignedTo,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        projectTasks = projectTasks
+            .map(
+              (existingTask) => existingTask.id == updatedTask.id
+                  ? updatedTask
+                  : existingTask,
+            )
+            .toList();
+      });
+
+      var assignedName = 'Unassigned';
+      for (final assignee in projectTaskAssignees) {
+        if (assignee.userId == assignedTo) {
+          assignedName = assignee.displayName;
+          break;
+        }
+      }
+
+      await createProjectActivityLog(
+        activityType: 'task_assigned',
+        title: 'Task assignment updated: ${updatedTask.title}',
+        body: 'Assigned to: $assignedName',
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString();
+      });
+    }
   }
 
   Future<void> toggleProjectTask(ProjectTask task) async {
@@ -1231,6 +1314,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         widget.companyContext.isAdmin ||
         widget.companyContext.isManager;
     final canCreateTasks = widget.companyContext.canCreateTasks;
+    final canAssignTasks = widget.companyContext.canAssignTasks;
     final canCompleteTasks = widget.companyContext.canCompleteTasks;
     final canDeleteTasks = widget.companyContext.canDeleteTasks;
     final canUpdateProjectStatus = widget.companyContext.canUpdateProjectStatus;
@@ -1467,9 +1551,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   assignees: projectTaskAssignees,
                   enabled: !isSaving,
                   canAddTask: canCreateTasks,
+                  canAssignTask: canAssignTasks,
                   canCompleteTask: canCompleteTasks,
                   canDeleteTask: canDeleteTasks,
                   onAddTask: addProjectTask,
+                  onAssignTask: assignProjectTask,
                   onToggleTask: toggleProjectTask,
                   onDeleteTask: deleteProjectTask,
                 ),

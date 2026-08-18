@@ -13,7 +13,9 @@ class ProjectTaskService {
   }) async {
     final rows = await _supabase
         .from('company_members')
-        .select('user_id, role, status, profiles(full_name, email)')
+        .select(
+          'user_id, role, status, profiles!company_members_user_id_fkey(full_name, email)',
+        )
         .eq('company_id', companyId)
         .eq('status', 'active')
         .neq('role', 'viewer')
@@ -71,6 +73,27 @@ class ProjectTaskService {
     final row = await _supabase
         .from('project_tasks')
         .insert(payload)
+        .select()
+        .single();
+
+    return ProjectTask.fromMap(row);
+  }
+
+  Future<ProjectTask> assignTask({
+    required String taskId,
+    required String? assignedTo,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final currentUserId = _supabase.auth.currentUser?.id;
+
+    final row = await _supabase
+        .from('project_tasks')
+        .update({
+          'assigned_to': assignedTo,
+          'updated_by': currentUserId,
+          'updated_at': now,
+        })
+        .eq('id', taskId)
         .select()
         .single();
 
