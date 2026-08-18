@@ -84,6 +84,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     String? phone,
     required String role,
   }) async {
+    if (!canManageTeam || isSaving || role == 'primary_admin') return;
+
     setState(() {
       isSaving = true;
       errorMessage = null;
@@ -144,7 +146,12 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<void> updateRole(TeamMember member, String role) async {
-    if (member.isPrimaryAdmin || isSaving) return;
+    if (!canManageTeam ||
+        member.isPrimaryAdmin ||
+        isSaving ||
+        role == 'primary_admin') {
+      return;
+    }
 
     setState(() {
       isSaving = true;
@@ -175,7 +182,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<void> toggleStatus(TeamMember member) async {
-    if (member.isPrimaryAdmin || isSaving) return;
+    if (!canManageTeam || member.isPrimaryAdmin || isSaving) return;
 
     setState(() {
       isSaving = true;
@@ -215,10 +222,6 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
         return SimpleDialog(
           title: Text('Change role for ${member.displayName}'),
           children: [
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(context).pop('primary_admin'),
-              child: const Text('Primary Admin'),
-            ),
             SimpleDialogOption(
               onPressed: () => Navigator.of(context).pop('cfo'),
               child: const Text('CFO'),
@@ -723,10 +726,6 @@ class _InviteTeamMemberDialogState extends State<_InviteTeamMemberDialog> {
                     labelText: 'Role',
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'primary_admin',
-                      child: Text('Primary Admin'),
-                    ),
                     DropdownMenuItem(value: 'cfo', child: Text('CFO')),
                     DropdownMenuItem(value: 'admin', child: Text('Admin')),
                     DropdownMenuItem(value: 'manager', child: Text('Manager')),
