@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/company_task.dart';
 import '../models/project_task.dart';
 import '../models/project_task_assignee.dart';
 
@@ -37,11 +38,39 @@ class ProjectTaskService {
         .order('due_date', ascending: true, nullsFirst: false)
         .order('created_at', ascending: false);
 
-    return rows
-        .map<ProjectTask>(
-          ProjectTask.fromMap,
+    return rows.map<ProjectTask>(ProjectTask.fromMap).toList();
+  }
+
+  Future<List<CompanyTask>> getCompanyTasks({required String companyId}) async {
+    final rows = await _supabase
+        .from('project_tasks')
+        .select('''
+        id,
+        company_id,
+        project_id,
+        title,
+        description,
+        status,
+        priority,
+        assigned_to,
+        created_by,
+        due_date,
+        completed_at,
+        created_at,
+        updated_at,
+        projects!project_tasks_project_id_fkey(
+          project_number,
+          name
+        ),
+        profiles!project_tasks_assigned_to_fkey(
+          full_name,
+          email
         )
-        .toList();
+      ''')
+        .eq('company_id', companyId)
+        .order('created_at', ascending: false);
+
+    return rows.map<CompanyTask>(CompanyTask.fromMap).toList();
   }
 
   Future<ProjectTask> createTask({
@@ -139,11 +168,7 @@ class ProjectTaskService {
 
     final row = await _supabase
         .from('project_tasks')
-        .update({
-          'status': 'done',
-          'completed_at': now,
-          'updated_at': now,
-        })
+        .update({'status': 'done', 'completed_at': now, 'updated_at': now})
         .eq('id', taskId)
         .select()
         .single();
@@ -156,11 +181,7 @@ class ProjectTaskService {
 
     final row = await _supabase
         .from('project_tasks')
-        .update({
-          'status': 'todo',
-          'completed_at': null,
-          'updated_at': now,
-        })
+        .update({'status': 'todo', 'completed_at': null, 'updated_at': now})
         .eq('id', taskId)
         .select()
         .single();

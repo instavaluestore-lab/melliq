@@ -195,6 +195,10 @@ class CompanyContext {
     return hasExecutiveAccess;
   }
 
+  bool get canViewCompanyTasks {
+    return isPrimaryAdmin || isCfo || isAdmin;
+  }
+
   bool get canCreateTasks {
     return isPrimaryAdmin || isCfo || isAdmin || isManager || isFieldUser;
   }

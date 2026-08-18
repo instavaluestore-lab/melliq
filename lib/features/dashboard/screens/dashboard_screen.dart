@@ -7,6 +7,7 @@ import '../../customers/screens/customers_list_screen.dart';
 import '../../leads/screens/leads_list_screen.dart';
 import '../../notifications/screens/notifications_screen.dart';
 import '../../notifications/services/user_notification_service.dart';
+import '../../projects/screens/company_tasks_screen.dart';
 import '../../projects/screens/projects_list_screen.dart';
 import '../../quotes/screens/quotes_list_screen.dart';
 import '../../quotes/screens/quote_pricing_admin_screen.dart';
@@ -329,6 +330,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: const Text('View Projects'),
                     ),
                   ),
+                  if (companyContext!.canViewCompanyTasks)
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CompanyTasksScreen(
+                                companyContext: companyContext!,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.task_alt_outlined),
+                        label: const Text('All Tasks'),
+                      ),
+                    ),
                 ],
               ),
               if (companyContext!.hasExecutiveAccess) ...[
