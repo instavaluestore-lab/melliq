@@ -5,6 +5,8 @@ import '../../company/models/company_context.dart';
 import '../../company/services/company_service.dart';
 import '../../customers/screens/customers_list_screen.dart';
 import '../../leads/screens/leads_list_screen.dart';
+import '../../notifications/screens/notifications_screen.dart';
+import '../../notifications/services/user_notification_service.dart';
 import '../../projects/screens/projects_list_screen.dart';
 import '../../quotes/screens/quotes_list_screen.dart';
 import '../../quotes/screens/quote_pricing_admin_screen.dart';
@@ -21,17 +23,20 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late final CompanyService companyService;
   late final ProjectService projectService;
+  late final UserNotificationService notificationService;
 
   bool isLoading = true;
   String? errorMessage;
   CompanyContext? companyContext;
   ProjectDashboardMetrics? projectMetrics;
+  int unreadNotificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     companyService = CompanyService(Supabase.instance.client);
     projectService = ProjectService(Supabase.instance.client);
+    notificationService = UserNotificationService(Supabase.instance.client);
     loadCompanyContext();
   }
 
@@ -50,11 +55,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               companyId: context.companyId,
             );
 
+      var unreadCount = 0;
+      if (context != null) {
+        try {
+          unreadCount = await notificationService.getUnreadCount(
+            companyId: context.companyId,
+          );
+        } catch (_) {
+          unreadCount = 0;
+        }
+      }
+
       if (!mounted) return;
 
       setState(() {
         companyContext = context;
         projectMetrics = metrics;
+        unreadNotificationCount = unreadCount;
         isLoading = false;
       });
     } catch (error) {
@@ -63,6 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         errorMessage = error.toString();
         projectMetrics = null;
+        unreadNotificationCount = 0;
         isLoading = false;
       });
     }
@@ -70,6 +88,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> handleLogout() async {
     await Supabase.instance.client.auth.signOut();
+  }
+
+  Future<void> openNotifications() async {
+    final context = companyContext;
+    if (context == null) return;
+
+    await Navigator.of(this.context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationsScreen(companyContext: context),
+      ),
+    );
+
+    try {
+      final unreadCount = await notificationService.getUnreadCount(
+        companyId: context.companyId,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        unreadNotificationCount = unreadCount;
+      });
+    } catch (_) {
+      // Keep the dashboard usable if notification refresh fails.
+    }
   }
 
   String _formatMoney(double value) {
@@ -164,6 +206,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
+          if (companyContext != null)
+            IconButton(
+              tooltip: unreadNotificationCount == 0
+                  ? 'Notifications'
+                  : '$unreadNotificationCount unread notifications',
+              onPressed: openNotifications,
+              icon: Badge(
+                isLabelVisible: unreadNotificationCount > 0,
+                label: Text(
+                  unreadNotificationCount > 99
+                      ? '99+'
+                      : unreadNotificationCount.toString(),
+                ),
+                child: const Icon(Icons.notifications_outlined),
+              ),
+            ),
           TextButton(onPressed: handleLogout, child: const Text('Log Out')),
           const SizedBox(width: 12),
         ],
