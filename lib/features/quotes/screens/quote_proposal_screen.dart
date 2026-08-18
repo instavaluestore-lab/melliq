@@ -54,6 +54,15 @@ class QuoteProposalScreen extends StatelessWidget {
   }
 
   Future<void> _updateQuoteStatus(BuildContext context, String status) async {
+    if (!companyContext.canUpdateQuoteStatus) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You do not have permission to update quote status.'),
+        ),
+      );
+      return;
+    }
+
     try {
       await QuoteService(
         Supabase.instance.client,
@@ -99,6 +108,7 @@ class QuoteProposalScreen extends StatelessWidget {
         children: [
           _ProposalWorkflowCard(
             quote: quote,
+            canUpdateStatus: companyContext.canUpdateQuoteStatus,
             onMarkSent: () => _updateQuoteStatus(context, 'sent'),
             onMarkApproved: () => _updateQuoteStatus(context, 'approved'),
             onMarkRejected: () => _updateQuoteStatus(context, 'rejected'),
@@ -571,12 +581,14 @@ class _ProposalStatusHistoryRow extends StatelessWidget {
 class _ProposalWorkflowCard extends StatelessWidget {
   const _ProposalWorkflowCard({
     required this.quote,
+    required this.canUpdateStatus,
     required this.onMarkSent,
     required this.onMarkApproved,
     required this.onMarkRejected,
   });
 
   final Quote quote;
+  final bool canUpdateStatus;
   final VoidCallback onMarkSent;
   final VoidCallback onMarkApproved;
   final VoidCallback onMarkRejected;
@@ -618,13 +630,13 @@ class _ProposalWorkflowCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (status == 'draft')
+              if (canUpdateStatus && status == 'draft')
                 FilledButton.icon(
                   onPressed: onMarkSent,
                   icon: const Icon(Icons.send_outlined),
                   label: const Text('Mark as Sent'),
                 ),
-              if (status == 'sent') ...[
+              if (canUpdateStatus && status == 'sent') ...[
                 FilledButton.icon(
                   onPressed: onMarkApproved,
                   icon: const Icon(Icons.check_circle_outline),

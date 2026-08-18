@@ -120,6 +120,35 @@ class CompanyContext {
     return hasExecutiveAccess;
   }
 
+  bool get canCreateQuotes {
+    return isPrimaryAdmin || isCfo || isAdmin || isManager;
+  }
+
+  bool get canEditQuotes {
+    return isPrimaryAdmin || isCfo || isAdmin || isManager;
+  }
+
+  bool get canDeleteQuotes {
+    return isPrimaryAdmin || isCfo || isAdmin;
+  }
+
+  bool get canUpdateQuoteStatus {
+    return canEditQuotes;
+  }
+
+  bool get canConvertQuoteToProject {
+    return canEditQuotes && canCreateProjects;
+  }
+
+  bool get canViewQuotes {
+    return isPrimaryAdmin ||
+        isCfo ||
+        isAdmin ||
+        isManager ||
+        isFieldUser ||
+        isViewer;
+  }
+
   bool get canCreateCustomers {
     return isPrimaryAdmin || isCfo || isAdmin || isManager;
   }

@@ -129,11 +129,7 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canManageQuotes =
-        companyContext.isPrimaryAdmin ||
-        companyContext.isCfo ||
-        companyContext.isAdmin ||
-        companyContext.isManager;
+    final canManageQuotes = companyContext.canEditQuotes;
 
     return Scaffold(
       appBar: AppBar(
@@ -197,7 +193,8 @@ class _QuotesListScreenState extends State<QuotesListScreen> {
                   quote: quote,
                   statusColor: _statusColor(quote.status),
                   showInternalMetrics: companyContext.hasExecutiveAccess,
-                  onTap: () => _openEditQuoteForm(quote),
+                  canEditQuote: companyContext.canEditQuotes,
+                  onEdit: () => _openEditQuoteForm(quote),
                   onViewProposal: () => _openQuoteProposal(quote),
                 ),
               ),
@@ -262,14 +259,16 @@ class _QuoteCard extends StatelessWidget {
     required this.quote,
     required this.statusColor,
     required this.showInternalMetrics,
-    required this.onTap,
+    required this.canEditQuote,
+    required this.onEdit,
     required this.onViewProposal,
   });
 
   final Quote quote;
   final Color statusColor;
   final bool showInternalMetrics;
-  final VoidCallback onTap;
+  final bool canEditQuote;
+  final VoidCallback onEdit;
   final VoidCallback onViewProposal;
 
   String formatCurrency(double value) {
@@ -299,7 +298,7 @@ class _QuoteCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: canEditQuote ? onEdit : onViewProposal,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -391,11 +390,12 @@ class _QuoteCard extends StatelessWidget {
                     icon: const Icon(Icons.description_outlined),
                     label: const Text('View Proposal'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit Quote'),
-                  ),
+                  if (canEditQuote)
+                    OutlinedButton.icon(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Edit Quote'),
+                    ),
                 ],
               ),
             ],

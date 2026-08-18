@@ -76,8 +76,15 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   bool get isPersistedApprovedQuote => widget.quote?.status == 'approved';
 
+  bool get canSaveQuote {
+    return isEditing
+        ? companyContext.canEditQuotes
+        : companyContext.canCreateQuotes;
+  }
+
   bool get canConvertToProject {
-    return isEditing &&
+    return companyContext.canConvertQuoteToProject &&
+        isEditing &&
         isPersistedApprovedQuote &&
         selectedStatus == 'approved' &&
         widget.quote?.isConverted != true;
@@ -513,6 +520,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   }
 
   Future<void> _saveQuote() async {
+    if (!canSaveQuote) {
+      setState(() {
+        errorMessage = 'You do not have permission to save quotes.';
+      });
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
 
     if (selectedCustomerId == null) {
@@ -620,6 +634,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
   }
 
   Future<void> _convertApprovedQuoteToProject() async {
+    if (!companyContext.canConvertQuoteToProject) {
+      setState(() {
+        errorMessage = 'You do not have permission to convert quotes.';
+      });
+      return;
+    }
+
     final quote = widget.quote;
 
     if (quote == null) {
@@ -1265,7 +1286,11 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: isSaving || isConverting || customers.isEmpty
+                    onPressed:
+                        !canSaveQuote ||
+                            isSaving ||
+                            isConverting ||
+                            customers.isEmpty
                         ? null
                         : _saveQuote,
                     icon: isSaving
