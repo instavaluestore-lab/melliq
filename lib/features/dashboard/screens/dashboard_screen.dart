@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -25,12 +27,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final CompanyService companyService;
   late final ProjectService projectService;
   late final UserNotificationService notificationService;
+  late final Timer notificationRefreshTimer;
 
   bool isLoading = true;
   String? errorMessage;
   CompanyContext? companyContext;
   ProjectDashboardMetrics? projectMetrics;
   int unreadNotificationCount = 0;
+  bool isRefreshingNotifications = false;
 
   @override
   void initState() {
@@ -38,6 +42,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     companyService = CompanyService(Supabase.instance.client);
     projectService = ProjectService(Supabase.instance.client);
     notificationService = UserNotificationService(Supabase.instance.client);
+    notificationRefreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => refreshUnreadNotificationCount(),
+    );
     loadCompanyContext();
   }
 
@@ -91,6 +99,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Supabase.instance.client.auth.signOut();
   }
 
+  Future<void> refreshUnreadNotificationCount() async {
+    final context = companyContext;
+    if (context == null || isRefreshingNotifications || !mounted) return;
+
+    isRefreshingNotifications = true;
+
+    try {
+      final unreadCount = await notificationService.getUnreadCount(
+        companyId: context.companyId,
+      );
+
+      if (!mounted || unreadCount == unreadNotificationCount) return;
+
+      setState(() {
+        unreadNotificationCount = unreadCount;
+      });
+    } catch (_) {
+      // Keep the dashboard usable if a background refresh fails.
+    } finally {
+      isRefreshingNotifications = false;
+    }
+  }
+
   Future<void> openNotifications() async {
     final context = companyContext;
     if (context == null) return;
@@ -101,18 +132,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
 
-    try {
-      final unreadCount = await notificationService.getUnreadCount(
-        companyId: context.companyId,
-      );
+    await refreshUnreadNotificationCount();
+  }
 
-      if (!mounted) return;
-      setState(() {
-        unreadNotificationCount = unreadCount;
-      });
-    } catch (_) {
-      // Keep the dashboard usable if notification refresh fails.
-    }
+  @override
+  void dispose() {
+    notificationRefreshTimer.cancel();
+    super.dispose();
   }
 
   String _formatMoney(double value) {
@@ -419,12 +445,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: stats,
                 );
               },
-            ),
-            const SizedBox(height: 28),
-            const _InfoCard(
-              title: 'Next Build Step',
-              body:
-                  'After company context is verified, build the Customers module and load real customer records from Supabase.',
             ),
           ],
         ),
