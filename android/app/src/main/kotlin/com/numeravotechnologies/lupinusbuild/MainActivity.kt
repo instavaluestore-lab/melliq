@@ -1,4 +1,4 @@
-package com.example.melliq
+package com.numeravotechnologies.lupinusbuild
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -2,6 +2,8 @@
 
 LupinusBuild is a multi-role project operations and financial management platform for construction, installation, fabrication, and field-service companies.
 
+Developed and owned by Numeravo Technologies LLC.
+
 ## Current capabilities
 
 - Company-based authentication and role permissions
@@ -17,7 +19,7 @@ LupinusBuild is a multi-role project operations and financial management platfor
 
 Run:
 
-    cd /Users/veracalc/Projects/melliq
+    cd /Users/veracalc/Projects/lupinusbuild
     flutter pub get
     flutter test
     flutter analyze
